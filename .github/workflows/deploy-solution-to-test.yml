@@ -51,9 +51,12 @@ jobs:
       uses: microsoft/powerplatform-actions/pack-solution@v1
       with:
         solution-folder: ./solutions/${{ github.event.inputs.solution_name }}
-        zip-file: ./out/managed/${{ github.event.inputs.solution_name }}.zip
+        solution-file: ./out/managed/${{ github.event.inputs.solution_name }}.zip
         solution-type: Managed
-        overwrite: true
+        single-component: None
+        use-lcid: false
+        use-unmanaged-file-for-missing-managed: false
+        disable-plugin-remap: false
 
     - name: Import Managed Solution
       uses: microsoft/powerplatform-actions/import-solution@v1
