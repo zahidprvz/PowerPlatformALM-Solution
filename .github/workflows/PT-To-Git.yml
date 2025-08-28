@@ -1,1 +1,40 @@
-job:
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Install Power Platform Tools
+      uses: microsoft/powerplatform-actions/actions-install@v1
+
+    - name: Export Solution
+      uses: microsoft/powerplatform-actions/export-solution@v1
+      with:
+        environment-url: ${{ secrets.ENVIRONMENT_URL }}
+        user-name: ${{ secrets.USER_NAME }}
+        password-secret: ${{ secrets.PASSWORD }}
+        solution-name: Zyris
+        solution-output-file: 'Zyris.zip'
+        working-directory: 'out'
+
+    - name: Unpack Solution
+      uses: microsoft/powerplatform-actions/unpack-solution@v1
+      with:
+        solution-file: 'out/Zyris.zip'
+        solution-folder: 'out/solutions/Zyris'
+        solution-type: 'Unmanaged'
+        overwrite-files: true
+
+    - name: Publish Solution
+      uses: microsoft/powerplatform-actions/publish-solution@v1
+      with:
+        environment-url: ${{ secrets.ENVIRONMENT_URL }}
+        user-name: ${{ secrets.USER_NAME }}
+        password-secret: ${{ secrets.PASSWORD }}
+
+    - name: Prepare solution changes for check-in into source control
+      uses: microsoft/powerplatform-actions/branch-solution@v1
+      with:
+        solution-folder: 'out/solutions/zyris'
+        solution-target-folder: 'src/solutions/zyris'
+        token: ${{ secrets.GTOKEN }}
