@@ -1017,6 +1017,12 @@
         <Required type="61" schemaName="AppCommon/Contact/Contact_main_system_library.js" displayName="AppCommon/Contact/Contact_main_system_library.js" solution="msdynce_AppCommon (9.0.4.0066)">
           <package appName="msdynce_AppCommon" version="9.0.25073.10001">msdynce_AppCommonAnchor (9.0.25073.10001)</package>
         </Required>
+        <Dependent type="60" displayName="Profile Web Form (Enhanced) - Japanese" parentDisplayName="Contact" id="{01124dd8-9bff-4cc0-bb33-ea9d943c3f9f}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="AppCommon/Contact/Contact_main_system_library.js" displayName="AppCommon/Contact/Contact_main_system_library.js" solution="msdynce_AppCommon (9.0.4.0066)">
+          <package appName="msdynce_AppCommon" version="9.0.25073.10001">msdynce_AppCommonAnchor (9.0.25073.10001)</package>
+        </Required>
         <Dependent type="60" displayName="Information" parentDisplayName="Contact" id="{894cc46a-b0cb-4ab0-8bf6-200544e46a2d}" />
       </MissingDependency>
       <MissingDependency>
@@ -1030,12 +1036,6 @@
           <package appName="msdynce_AppCommon" version="9.0.25073.10001">msdynce_AppCommonAnchor (9.0.25073.10001)</package>
         </Required>
         <Dependent type="60" displayName="Portal Contact (Enhanced)" parentDisplayName="Contact" id="{c1c97961-2d42-4103-abf8-2fe2bdf38224}" />
-      </MissingDependency>
-      <MissingDependency>
-        <Required type="61" schemaName="AppCommon/Contact/Contact_main_system_library.js" displayName="AppCommon/Contact/Contact_main_system_library.js" solution="msdynce_AppCommon (9.0.4.0066)">
-          <package appName="msdynce_AppCommon" version="9.0.25073.10001">msdynce_AppCommonAnchor (9.0.25073.10001)</package>
-        </Required>
-        <Dependent type="60" displayName="Invite Web Form" parentDisplayName="Contact" id="{d6190b35-9474-4098-9698-33f6627eb3bf}" />
       </MissingDependency>
       <MissingDependency>
         <Required type="61" schemaName="msa_bingmaps/adx_bingmapsvalidation.js" displayName="msa_bingmaps/adx_bingmapsvalidation.js" solution="PowerPages_RuntimeCoreDependencies (1.0.2305.1)">
