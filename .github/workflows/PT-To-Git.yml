@@ -5,10 +5,24 @@ name: export-and-branch-solution
 on:
   workflow_dispatch:
     inputs:
+      # Editable value
       solution_name:
         description: 'Name of the solution to work on from Power Platform'
         required: true
         default: Zyris
+      # Fixed values, do not change
+      solution_exported_folder:
+        description: 'Folder name for staging the exported solution (do not change)'
+        required: true
+        default: out/exported/
+      solution_folder:
+        description: 'Staging folder for unpacked solution before check-in (do not change)'
+        required: true
+        default: out/solutions/
+      solution_target_folder: 
+        description: 'Folder name to be created and checked in (do not change)'
+        required: true
+        default: solutions/
 
 env:
   ENVIRONMENT_URL: ${{ secrets.ENVIRONMENT_URL }}
@@ -46,14 +60,13 @@ jobs:
         user-name: ${{ env.USER_NAME }}
         password-secret: ${{ env.PASSWORD }}
         solution-name: ${{ github.event.inputs.solution_name }}
-        solution-output-file: out/${{ github.event.inputs.solution_name }}.zip
-        working-directory: out
+        solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}.zip
 
     - name: Unpack Solution
       uses: microsoft/powerplatform-actions/unpack-solution@v1
       with:
-        solution-file: out/${{ github.event.inputs.solution_name }}.zip
-        solution-folder: out/solutions/${{ github.event.inputs.solution_name }}
+        solution-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}.zip
+        solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
         solution-type: Unmanaged
         overwrite-files: true
 
@@ -67,7 +80,7 @@ jobs:
     - name: Branch Solution (prepare for PR)
       uses: microsoft/powerplatform-actions/branch-solution@v1
       with:
-        solution-folder: out/solutions/${{ github.event.inputs.solution_name }}
-        solution-target-folder: src/solutions/${{ github.event.inputs.solution_name }}
+        solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
+        solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
         token: ${{ secrets.GTOKEN }}
         allow-empty-commit: true
