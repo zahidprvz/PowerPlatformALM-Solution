@@ -1,5 +1,5 @@
 name: deploy-solution-to-test
-# Deploy a solution from Git to a Test environment as Managed
+# Deploy a Managed solution from Git to Test environment
 
 on:
   workflow_dispatch:
@@ -36,7 +36,7 @@ jobs:
         ref: ${{ github.event.inputs.source_branch }}
         lfs: true
 
-    - name: Install Power Platform CLI
+    - name: Install Power Platform Tools
       uses: microsoft/powerplatform-actions/actions-install@v1
 
     - name: Who Am I (Test Environment)
@@ -47,18 +47,7 @@ jobs:
         client-secret: ${{ secrets.CLIENT_SECRET }}
         tenant-id: ${{ env.TENANT_ID }}
 
-    - name: Pack Solution (Managed)
-      uses: microsoft/powerplatform-actions/pack-solution@v1
-      with:
-        solution-folder: ./solutions/${{ github.event.inputs.solution_name }}
-        solution-file: ./out/managed/${{ github.event.inputs.solution_name }}.zip
-        solution-type: Managed
-        single-component: None
-        use-lcid: false
-        use-unmanaged-file-for-missing-managed: false
-        disable-plugin-remap: false
-
-    - name: Import Managed Solution
+    - name: Import Managed Solution to Test
       uses: microsoft/powerplatform-actions/import-solution@v1
       with:
         environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
@@ -70,7 +59,7 @@ jobs:
         publish-workflows: true
         solution-type: Managed
 
-    - name: Publish Solution
+    - name: Publish Solution in Test
       uses: microsoft/powerplatform-actions/publish-solution@v1
       with:
         environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
