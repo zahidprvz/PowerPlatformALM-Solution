@@ -1,12 +1,28 @@
 name: export-and-branch-solution
+# Export solution from DEV environment,
+# unpack it and prepare, commit and push a git branch with the changes
 
 on:
   workflow_dispatch:
     inputs:
+      # Editable value
       solution_name:
         description: 'Name of the solution to work on from Power Platform'
         required: true
         default: Zyris
+      # Fixed values, do not change
+      solution_exported_folder:
+        description: 'Folder name for staging the exported solution (do not change)'
+        required: true
+        default: out/exported/
+      solution_folder:
+        description: 'Staging folder for unpacked solution before check-in (do not change)'
+        required: true
+        default: out/solutions/
+      solution_target_folder: 
+        description: 'Folder name to be created and checked in (do not change)'
+        required: true
+        default: solutions/
 
 env:
   ENVIRONMENT_URL: ${{ secrets.ENVIRONMENT_URL }}
@@ -14,13 +30,13 @@ env:
   TENANT_ID: ${{ secrets.TENANT_ID }}
 
 permissions:
-  id-token: write      # 🔑 REQUIRED for OIDC authentication
+  id-token: write 
   contents: write
 
 jobs:
   export-from-dev:
     runs-on: windows-latest
-    timeout-minutes: 720
+    timeout-minutes: 720 # increase to 12 hrs
     env:
       RUNNER_DEBUG: 1
 
@@ -37,24 +53,24 @@ jobs:
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
         app-id: ${{ env.CLIENT_ID }}
-        tenant-id: ${{ env.TENANT_ID }}
         client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
 
     - name: Export Solution
       uses: microsoft/powerplatform-actions/export-solution@v1
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
         app-id: ${{ env.CLIENT_ID }}
-        tenant-id: ${{ env.TENANT_ID }}
         client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
         solution-name: ${{ github.event.inputs.solution_name }}
-        solution-output-file: out/${{ github.event.inputs.solution_name }}.zip
+        solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}.zip
 
     - name: Unpack Solution
       uses: microsoft/powerplatform-actions/unpack-solution@v1
       with:
-        solution-file: out/${{ github.event.inputs.solution_name }}.zip
-        solution-folder: out/solutions/${{ github.event.inputs.solution_name }}
+        solution-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}.zip
+        solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
         solution-type: Unmanaged
         overwrite-files: true
 
@@ -63,13 +79,13 @@ jobs:
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
         app-id: ${{ env.CLIENT_ID }}
-        tenant-id: ${{ env.TENANT_ID }}
         client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
 
     - name: Branch Solution (prepare for PR)
       uses: microsoft/powerplatform-actions/branch-solution@v1
       with:
-        solution-folder: out/solutions/${{ github.event.inputs.solution_name }}
-        solution-target-folder: src/solutions/${{ github.event.inputs.solution_name }}
+        solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
+        solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         allow-empty-commit: true
