@@ -47,9 +47,13 @@ jobs:
         client-secret: ${{ secrets.CLIENT_SECRET }}
         tenant-id: ${{ env.TENANT_ID }}
 
-    - name: Pack solution from Git
-      run: |
-        pac solution pack --zipfile ./out/managed/${{ github.event.inputs.solution_name }}.zip --folder ./solutions/${{ github.event.inputs.solution_name }} --managed true --overwrite
+    - name: Pack Solution (Managed)
+      uses: microsoft/powerplatform-actions/pack-solution@v1
+      with:
+        solution-folder: ./solutions/${{ github.event.inputs.solution_name }}
+        zip-file: ./out/managed/${{ github.event.inputs.solution_name }}.zip
+        solution-type: Managed
+        overwrite: true
 
     - name: Import Managed Solution
       uses: microsoft/powerplatform-actions/import-solution@v1
