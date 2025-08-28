@@ -26,8 +26,8 @@ on:
 
 env:
   ENVIRONMENT_URL: ${{ secrets.ENVIRONMENT_URL }}
-  USER_NAME: ${{ secrets.USER_NAME }}
-  PASSWORD: ${{ secrets.PASSWORD }}
+  CLIENT_ID: ${{ secrets.CLIENT_ID }}
+  TENANT_ID: ${{ secrets.TENANT_ID }}
 
 permissions:
   contents: write
@@ -35,6 +35,7 @@ permissions:
 jobs:
   export-from-dev:
     runs-on: windows-latest
+    timeout-minutes: 720 # increase to 12 hrs
     env:
       RUNNER_DEBUG: 1
 
@@ -50,15 +51,17 @@ jobs:
       uses: microsoft/powerplatform-actions/who-am-i@v1
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
-        user-name: ${{ env.USER_NAME }}
-        password-secret: ${{ env.PASSWORD }}
+        app-id: ${{ env.CLIENT_ID }}
+        client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
 
     - name: Export Solution
       uses: microsoft/powerplatform-actions/export-solution@v1
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
-        user-name: ${{ env.USER_NAME }}
-        password-secret: ${{ env.PASSWORD }}
+        app-id: ${{ env.CLIENT_ID }}
+        client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
         solution-name: ${{ github.event.inputs.solution_name }}
         solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}.zip
 
@@ -74,13 +77,14 @@ jobs:
       uses: microsoft/powerplatform-actions/publish-solution@v1
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
-        user-name: ${{ env.USER_NAME }}
-        password-secret: ${{ env.PASSWORD }}
+        app-id: ${{ env.CLIENT_ID }}
+        client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
 
     - name: Branch Solution (prepare for PR)
       uses: microsoft/powerplatform-actions/branch-solution@v1
       with:
         solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
         solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
-        token: ${{ secrets.GTOKEN }}
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
         allow-empty-commit: true
