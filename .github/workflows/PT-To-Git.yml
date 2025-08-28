@@ -1,6 +1,6 @@
 name: export-and-branch-solution
-# Export solution from DEV environment,
-# unpack it and prepare, commit and push a git branch with the changes
+# Export solution from DEV environment (PT),
+# unpack it, commit to Git, and also export Managed zip for deployment
 
 on:
   workflow_dispatch:
@@ -33,7 +33,7 @@ permissions:
 jobs:
   export-from-dev:
     runs-on: windows-latest
-    timeout-minutes: 720 # increase to 12 hrs
+    timeout-minutes: 720
     env:
       RUNNER_DEBUG: 1
 
@@ -53,7 +53,7 @@ jobs:
         client-secret: ${{ secrets.CLIENT_SECRET }}
         tenant-id: ${{ env.TENANT_ID }}
 
-    - name: Export Solution
+    - name: Export Unmanaged Solution
       uses: microsoft/powerplatform-actions/export-solution@v1
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
@@ -62,8 +62,20 @@ jobs:
         tenant-id: ${{ env.TENANT_ID }}
         solution-name: ${{ github.event.inputs.solution_name }}
         solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}.zip
+        managed: false
 
-    - name: Unpack Solution
+    - name: Export Managed Solution (for Test env)
+      uses: microsoft/powerplatform-actions/export-solution@v1
+      with:
+        environment-url: ${{ env.ENVIRONMENT_URL }}
+        app-id: ${{ env.CLIENT_ID }}
+        client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
+        solution-name: ${{ github.event.inputs.solution_name }}
+        solution-output-file: ./out/managed/${{ github.event.inputs.solution_name }}.zip
+        managed: true
+
+    - name: Unpack Unmanaged Solution
       uses: microsoft/powerplatform-actions/unpack-solution@v1
       with:
         solution-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}.zip
@@ -71,7 +83,7 @@ jobs:
         solution-type: Unmanaged
         overwrite-files: true
 
-    - name: Publish Solution
+    - name: Publish Unmanaged Solution in PT
       uses: microsoft/powerplatform-actions/publish-solution@v1
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
