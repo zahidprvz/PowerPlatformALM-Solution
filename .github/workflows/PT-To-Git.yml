@@ -1,40 +1,73 @@
-jobs:
-  build:
+name: export-and-branch-solution
+# Export solution from DEV environment,
+# unpack it and prepare, commit and push a git branch with the changes
 
+on:
+  workflow_dispatch:
+    inputs:
+      solution_name:
+        description: 'Name of the solution to work on from Power Platform'
+        required: true
+        default: Zyris
+
+env:
+  ENVIRONMENT_URL: ${{ secrets.ENVIRONMENT_URL }}
+  USER_NAME: ${{ secrets.USER_NAME }}
+  PASSWORD: ${{ secrets.PASSWORD }}
+
+permissions:
+  contents: write
+
+jobs:
+  export-from-dev:
     runs-on: self-hosted
+    env:
+      RUNNER_DEBUG: 1
 
     steps:
+    - uses: actions/checkout@v2
+      with:
+        lfs: true
+
     - name: Install Power Platform Tools
       uses: microsoft/powerplatform-actions/actions-install@v1
+
+    - name: Who Am I
+      uses: microsoft/powerplatform-actions/who-am-i@v1
+      with:
+        environment-url: ${{ env.ENVIRONMENT_URL }}
+        user-name: ${{ env.USER_NAME }}
+        password-secret: ${{ env.PASSWORD }}
 
     - name: Export Solution
       uses: microsoft/powerplatform-actions/export-solution@v1
       with:
-        environment-url: ${{ secrets.ENVIRONMENT_URL }}
-        user-name: ${{ secrets.USER_NAME }}
-        password-secret: ${{ secrets.PASSWORD }}
-        solution-name: Zyris
-        solution-output-file: 'Zyris.zip'
-        working-directory: 'out'
+        environment-url: ${{ env.ENVIRONMENT_URL }}
+        user-name: ${{ env.USER_NAME }}
+        password-secret: ${{ env.PASSWORD }}
+        solution-name: ${{ github.event.inputs.solution_name }}
+        solution-output-file: out/${{ github.event.inputs.solution_name }}.zip
+        working-directory: out
 
     - name: Unpack Solution
       uses: microsoft/powerplatform-actions/unpack-solution@v1
       with:
-        solution-file: 'out/Zyris.zip'
-        solution-folder: 'out/solutions/Zyris'
-        solution-type: 'Unmanaged'
+        solution-file: out/${{ github.event.inputs.solution_name }}.zip
+        solution-folder: out/solutions/${{ github.event.inputs.solution_name }}
+        solution-type: Unmanaged
         overwrite-files: true
 
     - name: Publish Solution
       uses: microsoft/powerplatform-actions/publish-solution@v1
       with:
-        environment-url: ${{ secrets.ENVIRONMENT_URL }}
-        user-name: ${{ secrets.USER_NAME }}
-        password-secret: ${{ secrets.PASSWORD }}
+        environment-url: ${{ env.ENVIRONMENT_URL }}
+        user-name: ${{ env.USER_NAME }}
+        password-secret: ${{ env.PASSWORD }}
 
-    - name: Prepare solution changes for check-in into source control
+    - name: Branch Solution (prepare for PR)
       uses: microsoft/powerplatform-actions/branch-solution@v1
       with:
-        solution-folder: 'out/solutions/zyris'
-        solution-target-folder: 'src/solutions/zyris'
+        solution-folder: out/solutions/${{ github.event.inputs.solution_name }}
+        solution-target-folder: src/solutions/${{ github.event.inputs.solution_name }}
         token: ${{ secrets.GTOKEN }}
+        allow-empty-commit: true
