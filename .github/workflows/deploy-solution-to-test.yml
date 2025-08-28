@@ -1,6 +1,4 @@
 name: deploy-solution-to-test
-# Deploy solution from Git to Test environment as Managed
-
 on:
   workflow_dispatch:
     inputs:
@@ -47,13 +45,6 @@ jobs:
         client-secret: ${{ secrets.CLIENT_SECRET }}
         tenant-id: ${{ env.TENANT_ID }}
 
-    - name: Pack Managed Solution
-      uses: microsoft/powerplatform-actions/pack-solution@v1
-      with:
-        solution-folder: ./solutions/${{ github.event.inputs.solution_name }}
-        solution-file: ./out/managed/${{ github.event.inputs.solution_name }}.zip
-        solution-type: Managed
-
     - name: Import Managed Solution to Test
       uses: microsoft/powerplatform-actions/import-solution@v1
       with:
@@ -61,7 +52,7 @@ jobs:
         app-id: ${{ env.CLIENT_ID }}
         client-secret: ${{ secrets.CLIENT_SECRET }}
         tenant-id: ${{ env.TENANT_ID }}
-        solution-file: ./out/managed/${{ github.event.inputs.solution_name }}.zip
+        solution-file: ./out/exported/${{ github.event.inputs.solution_name }}_Managed.zip
         activate-plugins: true
         force-overwrite: false
         skip-dependency-check: false
