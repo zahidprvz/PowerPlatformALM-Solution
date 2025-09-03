@@ -1,7 +1,8 @@
 name: export-and-branch-solution
-# Exports the unmanaged solution from the dev environment,
-# unpacks it, commits changes to a new branch, and stores both
-# managed and unmanaged zip files as artifacts.
+# This workflow automates the export of an unmanaged solution from a
+# development environment. It then unpacks the solution, creates both
+# managed and unmanaged zip files, and pushes them to a new branch
+# in the repository for source control.
 on:
   workflow_dispatch:
     inputs:
@@ -10,7 +11,7 @@ on:
         required: true
         default: Zyris
       solution_exported_folder:
-        description: 'Folder for exported zips'
+        description: 'Folder for exported zip files'
         required: true
         default: out/exported/
       solution_folder:
@@ -18,7 +19,7 @@ on:
         required: true
         default: out/solutions/
       solution_target_folder:
-        description: 'Folder to commit to repo'
+        description: 'Folder to commit to repository'
         required: true
         default: solutions/
 
@@ -38,7 +39,7 @@ jobs:
       RUNNER_DEBUG: 1
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           lfs: true
           fetch-depth: 0
@@ -54,9 +55,8 @@ jobs:
           client-secret: ${{ secrets.CLIENT_SECRET }}
           tenant-id: ${{ env.TENANT_ID }}
 
-      - name: Export Solutions
+      - name: Export Unmanaged Solution
         uses: microsoft/powerplatform-actions/export-solution@v1
-        id: export-solution
         with:
           environment-url: ${{ env.ENVIRONMENT_URL }}
           app-id: ${{ env.CLIENT_ID }}
@@ -66,7 +66,7 @@ jobs:
           solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip
           managed: false
           overwrite: true
-      
+
       - name: Export Managed Solution
         uses: microsoft/powerplatform-actions/export-solution@v1
         with:
@@ -94,7 +94,7 @@ jobs:
           app-id: ${{ env.CLIENT_ID }}
           client-secret: ${{ secrets.CLIENT_SECRET }}
           tenant-id: ${{ env.TENANT_ID }}
-      
+
       - name: Commit Unpacked Solution and Zips
         uses: microsoft/powerplatform-actions/branch-solution@v1
         with:
@@ -105,7 +105,7 @@ jobs:
           commit-message: 'feat: Exported solution ${{ github.event.inputs.solution_name }}'
 
       - name: Upload Unmanaged and Managed Zips
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.solution_name }}-zips
           path: ${{ github.event.inputs.solution_exported_folder }}
