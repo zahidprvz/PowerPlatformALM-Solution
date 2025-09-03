@@ -1,4 +1,7 @@
 name: deploy-solution-to-test
+# This workflow deploys a managed solution to the testing environment.
+# It checks out a specified branch, downloads the managed solution zip
+# file, and imports it into the target environment.
 on:
   workflow_dispatch:
     inputs:
@@ -26,10 +29,9 @@ jobs:
     timeout-minutes: 720
     env:
       RUNNER_DEBUG: 1
-
     steps:
       - name: Checkout selected branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.source_branch }}
           lfs: true
