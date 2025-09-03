@@ -1,7 +1,7 @@
 name: export-and-branch-solution
-# Export solution from Dev environment,
-# unpack it, prepare for PR, and commit Managed & Unmanaged zips
-
+# Exports the unmanaged solution from the dev environment,
+# unpacks it, commits changes to a new branch, and stores both
+# managed and unmanaged zip files as artifacts.
 on:
   workflow_dispatch:
     inputs:
@@ -17,7 +17,7 @@ on:
         description: 'Folder for unpacked solution (Unmanaged)'
         required: true
         default: out/solutions/
-      solution_target_folder: 
+      solution_target_folder:
         description: 'Folder to commit to repo'
         required: true
         default: solutions/
@@ -36,72 +36,76 @@ jobs:
     timeout-minutes: 720
     env:
       RUNNER_DEBUG: 1
-
     steps:
-    - uses: actions/checkout@v2
-      with:
-        lfs: true
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+          fetch-depth: 0
 
-    - name: Install Power Platform Tools
-      uses: microsoft/powerplatform-actions/actions-install@v1
+      - name: Install Power Platform Tools
+        uses: microsoft/powerplatform-actions/actions-install@v1
 
-    - name: Who Am I (Dev)
-      uses: microsoft/powerplatform-actions/who-am-i@v1
-      with:
-        environment-url: ${{ env.ENVIRONMENT_URL }}
-        app-id: ${{ env.CLIENT_ID }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
-        tenant-id: ${{ env.TENANT_ID }}
+      - name: Who Am I (Dev)
+        uses: microsoft/powerplatform-actions/who-am-i@v1
+        with:
+          environment-url: ${{ env.ENVIRONMENT_URL }}
+          app-id: ${{ env.CLIENT_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          tenant-id: ${{ env.TENANT_ID }}
 
-    - name: Export Solution (Unmanaged)
-      uses: microsoft/powerplatform-actions/export-solution@v1
-      with:
-        environment-url: ${{ env.ENVIRONMENT_URL }}
-        app-id: ${{ env.CLIENT_ID }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
-        tenant-id: ${{ env.TENANT_ID }}
-        solution-name: ${{ github.event.inputs.solution_name }}
-        solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip
+      - name: Export Solutions
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        id: export-solution
+        with:
+          environment-url: ${{ env.ENVIRONMENT_URL }}
+          app-id: ${{ env.CLIENT_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          tenant-id: ${{ env.TENANT_ID }}
+          solution-name: ${{ github.event.inputs.solution_name }}
+          solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip
+          managed: false
+          overwrite: true
+      
+      - name: Export Managed Solution
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ env.ENVIRONMENT_URL }}
+          app-id: ${{ env.CLIENT_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          tenant-id: ${{ env.TENANT_ID }}
+          solution-name: ${{ github.event.inputs.solution_name }}
+          solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Managed.zip
+          managed: true
+          overwrite: true
 
-    - name: Export Solution (Managed)
-      uses: microsoft/powerplatform-actions/export-solution@v1
-      with:
-        environment-url: ${{ env.ENVIRONMENT_URL }}
-        app-id: ${{ env.CLIENT_ID }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
-        tenant-id: ${{ env.TENANT_ID }}
-        solution-name: ${{ github.event.inputs.solution_name }}
-        solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Managed.zip
-        managed: true
+      - name: Unpack Unmanaged Solution
+        uses: microsoft/powerplatform-actions/unpack-solution@v1
+        with:
+          solution-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip
+          solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
+          solution-type: Unmanaged
+          overwrite-files: true
 
-    - name: Unpack Unmanaged Solution
-      uses: microsoft/powerplatform-actions/unpack-solution@v1
-      with:
-        solution-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip
-        solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
-        solution-type: Unmanaged
-        overwrite-files: true
+      - name: Publish Solution in Dev
+        uses: microsoft/powerplatform-actions/publish-solution@v1
+        with:
+          environment-url: ${{ env.ENVIRONMENT_URL }}
+          app-id: ${{ env.CLIENT_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          tenant-id: ${{ env.TENANT_ID }}
+      
+      - name: Commit Unpacked Solution and Zips
+        uses: microsoft/powerplatform-actions/branch-solution@v1
+        with:
+          solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
+          solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          allow-empty-commit: true
+          commit-message: 'feat: Exported solution ${{ github.event.inputs.solution_name }}'
 
-    - name: Publish Solution in Dev
-      uses: microsoft/powerplatform-actions/publish-solution@v1
-      with:
-        environment-url: ${{ env.ENVIRONMENT_URL }}
-        app-id: ${{ env.CLIENT_ID }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
-        tenant-id: ${{ env.TENANT_ID }}
-
-    - name: Branch Solution (prepare for PR)
-      uses: microsoft/powerplatform-actions/branch-solution@v1
-      with:
-        solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
-        solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        allow-empty-commit: true
-
-    - name: Commit Managed Zip to Git
-      run: |
-        git config user.name "github-actions"
-        git config user.email "github-actions@github.com"
-        git add ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Managed.zip
-        git commit -m "Add Managed solution zip for ${{ github.event.inputs.solution_name }}"
-        git push
+      - name: Upload Unmanaged and Managed Zips
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.event.inputs.solution_name }}-zips
+          path: ${{ github.event.inputs.solution_exported_folder }}
