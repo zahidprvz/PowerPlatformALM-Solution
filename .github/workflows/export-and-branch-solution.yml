@@ -1,7 +1,7 @@
 name: export-and-branch-solution
 # This workflow exports an unmanaged solution from a dev environment,
 # unpacks it for source control, and commits both the unpacked files
-# and the managed/unmanaged zip files to a new, versioned branch.
+# and the managed/unmanaged zip files to a new, unique branch.
 on:
   workflow_dispatch:
     inputs:
@@ -94,11 +94,11 @@ jobs:
           client-secret: ${{ secrets.CLIENT_SECRET }}
           tenant-id: ${{ env.TENANT_ID }}
 
-      - name: Commit All Changes to Git
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add ${{ github.event.inputs.solution_exported_folder }}
-          git add ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
-          git commit -m "feat: Exported solution ${{ github.event.inputs.solution_name }}"
-          git push
+      - name: Branch Solution and Commit All Changes
+        uses: microsoft/powerplatform-actions/branch-solution@v1
+        with:
+          solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
+          solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          allow-empty-commit: true
+          commit-message: 'feat: Exported solution ${{ github.event.inputs.solution_name }}'
