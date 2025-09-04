@@ -30,7 +30,7 @@ jobs:
     env:
       RUNNER_DEBUG: 1
     steps:
-      - name: Checkout selected branch
+      - name: Checkout selected branch and get latest changes
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.source_branch }}
