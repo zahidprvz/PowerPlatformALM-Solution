@@ -80,8 +80,46 @@
       </Addresses>
     </Publisher>
     <RootComponents>
+      <RootComponent type="29" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" behavior="0" />
       <RootComponent type="29" id="{620716f7-4683-f011-b4cb-7c1e527756ba}" behavior="0" />
     </RootComponents>
-    <MissingDependencies />
+    <MissingDependencies>
+      <MissingDependency>
+        <Required type="connectionreference" displayName="new_sharedoffice365_aca53" solution="Active" id.connectionreferencelogicalname="new_sharedoffice365_aca53" />
+        <Dependent type="29" displayName="Audit | OnDemand | GetAuditLogsAndUploadToSharepoint-V10" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="connectionreference" displayName="new_sharedsharepointonline_a89c0" solution="Active" id.connectionreferencelogicalname="new_sharedsharepointonline_a89c0" />
+        <Dependent type="29" displayName="Audit | OnDemand | GetAuditLogsAndUploadToSharepoint-V10" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="connectionreference" displayName="zp_sharedwebcontents_973b1" solution="Active" id.connectionreferencelogicalname="zp_sharedwebcontents_973b1" />
+        <Dependent type="29" displayName="Audit | OnDemand | GetAuditLogsAndUploadToSharepoint-V10" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="EnvironmentVariableDefinition" displayName="tr_AuditAPIBaseURL" solution="Active" id.schemaname="tr_AuditAPIBaseURL" />
+        <Dependent type="29" displayName="Audit | OnDemand | GetAuditLogsAndUploadToSharepoint-V10" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="EnvironmentVariableDefinition" displayName="tr_EndDate" solution="Active" id.schemaname="tr_EndDate" />
+        <Dependent type="29" displayName="Audit | OnDemand | GetAuditLogsAndUploadToSharepoint-V10" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="EnvironmentVariableDefinition" displayName="tr_SelectColumns" solution="Active" id.schemaname="tr_SelectColumns" />
+        <Dependent type="29" displayName="Audit | OnDemand | GetAuditLogsAndUploadToSharepoint-V10" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="EnvironmentVariableDefinition" displayName="tr_StartDate" solution="Active" id.schemaname="tr_StartDate" />
+        <Dependent type="29" displayName="Audit | OnDemand | GetAuditLogsAndUploadToSharepoint-V10" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="EnvironmentVariableDefinition" displayName="tr_TableName" solution="Active" id.schemaname="tr_TableName" />
+        <Dependent type="29" displayName="Audit | OnDemand | GetAuditLogsAndUploadToSharepoint-V10" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="EnvironmentVariableDefinition" displayName="umer_EmailSharePoint" solution="Active" id.schemaname="umer_EmailSharePoint" />
+        <Dependent type="29" displayName="Audit | OnDemand | GetAuditLogsAndUploadToSharepoint-V10" id="{33e0cc89-1463-f011-bec2-7c1e527756ba}" />
+      </MissingDependency>
+    </MissingDependencies>
   </SolutionManifest>
 </ImportExportXml>
