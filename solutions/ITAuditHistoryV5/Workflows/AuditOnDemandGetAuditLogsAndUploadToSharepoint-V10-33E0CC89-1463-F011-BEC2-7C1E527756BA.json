@@ -1,0 +1,677 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_webcontents-2": {
+        "api": {
+          "name": "shared_webcontents"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "zp_sharedwebcontents_973b1"
+        },
+        "runtimeSource": "embedded"
+      },
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_a89c0"
+        },
+        "runtimeSource": "embedded"
+      },
+      "shared_office365": {
+        "api": {
+          "name": "shared_office365"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedoffice365_aca53"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "undefined",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "AuditAPIBaseURL (tr_AuditAPIBaseURL)": {
+          "defaultValue": "https://org7f51c882.crm4.dynamics.com",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_AuditAPIBaseURL",
+            "description": "Stores the API calling from the tenant's data verse"
+          }
+        },
+        "StartDate (tr_StartDate)": {
+          "defaultValue": "2025-07-14T00:00:00Z",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_StartDate",
+            "description": "Enter the Data and Time from which you want the audit data"
+          }
+        },
+        "EndDate (tr_EndDate)": {
+          "defaultValue": "2025-07-15T00:00:00Z",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_EndDate",
+            "description": "Enter the End date and time till which you want the data"
+          }
+        },
+        "Table Name (tr_TableName)": {
+          "defaultValue": "All",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_TableName",
+            "description": "Enter ONLY the LOGICAL NAME of the table"
+          }
+        },
+        "SelectedColumns (tr_SelectColumns)": {
+          "defaultValue": "statecode,statuscode",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SelectColumns",
+            "description": "Either enter 'All' or comma separated Columns"
+          }
+        },
+        "Email SharePoint (umer_EmailSharePoint)": {
+          "defaultValue": "UmerHayat@Devsinc700.onmicrosoft.com",
+          "type": "String",
+          "metadata": {
+            "schemaName": "umer_EmailSharePoint",
+            "description": "Email designated person the SharePoint Link"
+          }
+        }
+      },
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Month",
+            "interval": 1,
+            "timeZone": "Pakistan Standard Time",
+            "startTime": "2025-08-01T00:00:00Z"
+          },
+          "metadata": {
+            "operationMetadataId": "0aa7a85f-ac73-4d3a-b28c-ceb7d200a1a4"
+          }
+        }
+      },
+      "actions": {
+        "(Scope)_Creating_And_Storing_Audit_Table": {
+          "type": "Scope",
+          "actions": {
+            "Create_CSV_table_all_columns": {
+              "type": "Table",
+              "inputs": {
+                "from": "@variables('Collection')",
+                "format": "CSV"
+              },
+              "metadata": {
+                "operationMetadataId": "b8b18639-43a6-4a18-b2eb-ce5a0d2be584"
+              }
+            }
+          },
+          "runAfter": {
+            "(Scope)_Extract_And_Parse_Changedata": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "cacb09b5-4f5e-4d54-bb57-9fa4a199c86f"
+          }
+        },
+        "APICalledAndParsed": {
+          "type": "Scope",
+          "description": "The Scope for the HTTP call and the first parsing connectors",
+          "actions": {
+            "Check_Table_Names": {
+              "type": "If",
+              "expression": {
+                "or": [
+                  {
+                    "equals": [
+                      "@parameters('Table Name (tr_TableName)')",
+                      "All"
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@parameters('Table Name (tr_TableName)')",
+                      "all"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "(Scope)_HTTP_Request_All_Tables": {
+                  "type": "Scope",
+                  "actions": {
+                    "HTTP_Request_All_Tables": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "request/method": "GET",
+                          "request/url": "@{parameters('AuditAPIBaseURL (tr_AuditAPIBaseURL)')}/api/data/v9.2/audits"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents",
+                          "operationId": "InvokeHttp",
+                          "connectionName": "shared_webcontents-2"
+                        }
+                      },
+                      "metadata": {
+                        "operationMetadataId": "816ee356-355c-431f-8815-11a76da2d702"
+                      }
+                    },
+                    "Set_varHttpResponse": {
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "varHttpResponse",
+                        "value": "@body('HTTP_Request_All_Tables')"
+                      },
+                      "runAfter": {
+                        "HTTP_Request_All_Tables": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "c991d652-4558-4493-9494-df12b5139aeb"
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "operationMetadataId": "adeff30b-4101-4e84-bdb5-8a622244d432"
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "(Scope)_HTTP_Request_Selected_Tables": {
+                    "type": "Scope",
+                    "actions": {
+                      "HTTP_Request_Selected_Tables": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "request/method": "GET",
+                            "request/url": "@concat(\r\n  parameters('AuditAPIBaseURL (tr_AuditAPIBaseURL)'), '/api/data/v9.2/audits?$filter=',\r\n  'createdon ge ', parameters('StartDate (tr_StartDate)'), \r\n  ' and createdon le ', parameters('EndDate (tr_EndDate)'),\r\n  if(\r\n    or(\r\n      empty(trim(coalesce(parameters('Table Name (tr_TableName)'), ''))),\r\n      equals(trim(coalesce(parameters('Table Name (tr_TableName)'), '')), '')\r\n    ),\r\n    '',\r\n    concat(' and ', parameters('Table Name (tr_TableName)'))\r\n  )\r\n)"
+                          },
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents",
+                            "operationId": "InvokeHttp",
+                            "connectionName": "shared_webcontents-2"
+                          }
+                        },
+                        "metadata": {
+                          "operationMetadataId": "816ee356-355c-431f-8815-11a76da2d702"
+                        }
+                      },
+                      "Set_varHttpResponse_1": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "varHttpResponse",
+                          "value": "@body('HTTP_Request_Selected_Tables')"
+                        },
+                        "runAfter": {
+                          "HTTP_Request_Selected_Tables": [
+                            "Succeeded"
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "9e93f305-e0d4-498c-a7d2-52973a9d727e"
+                        }
+                      }
+                    },
+                    "metadata": {
+                      "operationMetadataId": "9e642f2a-d73c-4068-98fb-a5dfeb804641"
+                    }
+                  }
+                }
+              },
+              "metadata": {
+                "operationMetadataId": "1e4d3dc5-efdf-4e32-9f9e-3370980fb54b"
+              }
+            },
+            "(Scope)_Parse_JSON": {
+              "type": "Scope",
+              "actions": {
+                "Parse_JSON": {
+                  "type": "ParseJson",
+                  "inputs": {
+                    "content": "@variables('varHttpResponse')",
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "auditid": {
+                                "type": "string"
+                              },
+                              "createdon": {
+                                "type": "string"
+                              },
+                              "objecttypecode": {
+                                "type": "string"
+                              },
+                              "operation": {
+                                "type": "integer"
+                              },
+                              "_userid_value": {
+                                "type": "string"
+                              },
+                              "changedata": {
+                                "type": "string"
+                              },
+                              "action": {
+                                "type": "integer"
+                              },
+                              "transactionid": {
+                                "type": "string"
+                              },
+                              "versionnumber": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "objecttypecode",
+                              "operation",
+                              "changedata",
+                              "auditid",
+                              "createdon"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "operationMetadataId": "a6d12d29-8b7a-4ef6-a387-55f226789f4e"
+                  }
+                }
+              },
+              "runAfter": {
+                "Check_Table_Names": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "45efdb0a-c2bd-4209-95ff-0ee9fceb7491"
+              }
+            }
+          },
+          "runAfter": {
+            "varcollection": [
+              "Succeeded"
+            ],
+            "varSelectedColumns": [
+              "Succeeded"
+            ],
+            "colAuditRecords": [
+              "Succeeded"
+            ],
+            "varAuditRecord": [
+              "Succeeded"
+            ],
+            "varHttpResponse": [
+              "Succeeded"
+            ],
+            "varCreateTable": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "0766d104-5381-4fd6-900c-01e5992effcc"
+          }
+        },
+        "varcollection": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Collection",
+                "type": "array",
+                "value": []
+              }
+            ]
+          },
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "e052571b-c5b2-4472-ab63-e482bac7d20c"
+          }
+        },
+        "varSelectedColumns": {
+          "type": "Compose",
+          "inputs": "@split(parameters('SelectedColumns (tr_SelectColumns)'), ',')",
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "bbd972af-0d26-4cea-8183-0fb2142b2950"
+          }
+        },
+        "colAuditRecords": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "colAuditRecords",
+                "type": "array",
+                "value": []
+              }
+            ]
+          },
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "0377bb48-eee8-4a1b-9790-3006e2858b4f"
+          }
+        },
+        "varAuditRecord": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "varAuditRecord",
+                "type": "object",
+                "value": {}
+              }
+            ]
+          },
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "12bc87f3-6888-40f0-9e2d-5d09c3a02f93"
+          }
+        },
+        "varHttpResponse": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "varHttpResponse",
+                "type": "object",
+                "value": {}
+              }
+            ]
+          },
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "f27e1381-5c5b-4dc7-a622-0ea0854cc205"
+          }
+        },
+        "varCreateTable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "varCreateTable",
+                "type": "string"
+              }
+            ]
+          },
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "918d3f15-0edb-48dc-9b7f-ab47f0a79538"
+          }
+        },
+        "(Scope)_Create_and_Email_SharePoint_CSV_File": {
+          "type": "Scope",
+          "actions": {
+            "AccessingSharePoint": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://devsinc730.sharepoint.com/sites/AuditSite",
+                  "folderPath": "/Audit Files/AuditData/@{formatDateTime(utcNow(), 'dd-MM-yyyy')}",
+                  "name": "AuditLog_@{utcNow('yyyyMMdd_HHmmss')}.csv",
+                  "body": "@body('Create_CSV_table_all_columns')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "CreateFile",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runtimeConfiguration": {
+                "contentTransfer": {
+                  "transferMode": "Chunked"
+                }
+              },
+              "metadata": {
+                "operationMetadataId": "0faefa98-62a7-480e-a6c3-50bfbee368d3"
+              }
+            },
+            "Send_an_email_(V2)": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "emailMessage/To": "@parameters('Email SharePoint (umer_EmailSharePoint)')",
+                  "emailMessage/Subject": "Audit File Generated",
+                  "emailMessage/Body": "<p class=\"editor-paragraph\"><br>Greetings,<br><br><br><br>The Audit File <strong>@{outputs('AccessingSharePoint')?['body/DisplayName']}</strong> has been generated.<br><br><br><br><a href=\"@{concat('https://devsinc730.sharepoint.com/sites/AuditSite/Audit Files/AuditData/', outputs('AccessingSharePoint')?['body/ServerRelativeUrl'])}\" class=\"editor-link\">Click to View</a><br><br><br><br>Regards,<br><br>WeatherBys</p><br><br>",
+                  "emailMessage/Importance": "Normal"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                  "operationId": "SendEmailV2",
+                  "connectionName": "shared_office365"
+                }
+              },
+              "runAfter": {
+                "AccessingSharePoint": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "(Scope)_Creating_And_Storing_Audit_Table": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "446a59b4-9778-410e-a4e7-3b05f333d4bf"
+          }
+        },
+        "(Scope)_Extract_And_Parse_Changedata": {
+          "type": "Scope",
+          "actions": {
+            "(Loop)_Get_an_Object": {
+              "type": "Foreach",
+              "foreach": "@body('Filter_Parsed_JSON_Array_Via_Query')",
+              "actions": {
+                "(Loop)_Get_a_Single_ChangedAttribute_Record": {
+                  "type": "Foreach",
+                  "foreach": "@variables('colAuditRecords')",
+                  "actions": {
+                    "Append_to_array_variable_Collection": {
+                      "type": "AppendToArrayVariable",
+                      "inputs": {
+                        "name": "Collection",
+                        "value": "@items('(Loop)_Get_a_Single_ChangedAttribute_Record')"
+                      },
+                      "metadata": {
+                        "operationMetadataId": "34264bff-3b6f-44ca-a3eb-5fde8252c7d3"
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "(Condition)_Check_SelectedColumns_'All'": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "46771c35-e12f-4ba2-b4b3-973910239ec7"
+                  }
+                },
+                "(Condition)_Check_SelectedColumns_'All'": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@parameters('SelectedColumns (tr_SelectColumns)')",
+                          "All"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "(Scope)_Store_All_Selected_Records": {
+                      "type": "Scope",
+                      "actions": {
+                        "Set_variable_ColAuditRecords": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "colAuditRecords",
+                            "value": "@body('Select_Records')"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "(Scope)_Store_Filtered_Selected_Records": {
+                        "type": "Scope",
+                        "actions": {
+                          "Filter_array_for_Selected_Records": {
+                            "type": "Query",
+                            "inputs": {
+                              "from": "@body('Select_Records')",
+                              "where": "@contains(split(parameters('SelectedColumns (tr_SelectColumns)'), ','),item()?['FieldName'])"
+                            },
+                            "metadata": {
+                              "operationMetadataId": "09b00a3f-fbf7-4cba-a145-f3367bad8ca5"
+                            }
+                          },
+                          "Set_variable_colAuditRecords_2": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "colAuditRecords",
+                              "value": "@body('Filter_array_for_Selected_Records')"
+                            },
+                            "runAfter": {
+                              "Filter_array_for_Selected_Records": [
+                                "Succeeded"
+                              ]
+                            }
+                          }
+                        },
+                        "metadata": {
+                          "operationMetadataId": "bbe5b201-842a-4b2a-ae7e-5a772783cb1a"
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "(Scope)_Parse_And_Get_ChangeAttribute": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "20a96b0d-c7c0-4961-933d-2e56489fad83"
+                  }
+                },
+                "(Scope)_Parse_And_Get_ChangeAttribute": {
+                  "type": "Scope",
+                  "actions": {
+                    "Parse_Changedata": {
+                      "type": "ParseJson",
+                      "inputs": {
+                        "content": "@items('(Loop)_Get_an_Object')['changedata']",
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "changedAttributes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "logicalName": {
+                                    "type": "string"
+                                  },
+                                  "oldValue": {},
+                                  "newValue": {}
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "operationMetadataId": "ca6542dc-91bc-466f-9946-7cb796c5f25a"
+                      }
+                    },
+                    "Select_Records": {
+                      "type": "Select",
+                      "inputs": {
+                        "from": "@body('Parse_Changedata')?['changedAttributes']",
+                        "select": {
+                          "Audit Id": "@items('(Loop)_Get_an_Object')?['auditid']",
+                          "Created On": "@items('(Loop)_Get_an_Object')?['createdon']",
+                          "Table Name": "@items('(Loop)_Get_an_Object')?['objecttypecode']",
+                          "Operation": "@items('(Loop)_Get_an_Object')?['operation']",
+                          "User Id": "@items('(Loop)_Get_an_Object')?['_userid_value']",
+                          "FieldName": "@item()?['logicalName']",
+                          "Old Value": "@item()?['oldValue']",
+                          "New Value": "@item()?['newValue']",
+                          "Action": "@items('(Loop)_Get_an_Object')?['action']",
+                          "TransactionId": "@items('(Loop)_Get_an_Object')?['transactionid']"
+                        }
+                      },
+                      "runAfter": {
+                        "Parse_Changedata": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "238aaead-9419-4c6b-9fb8-01f46598c32e"
+                      }
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "(Scope)_Parse_Valid_JSON": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "0bd0f5f7-19fb-4a11-a501-d8b1f9d07e4b"
+              }
+            },
+            "(Scope)_Parse_Valid_JSON": {
+              "type": "Scope",
+              "actions": {
+                "Filter_Parsed_JSON_Array_Via_Query": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('Parse_JSON')?['value']",
+                    "where": "@and(\r\n  not(empty(item()?['changedata'])),\r\n  startsWith(item()?['changedata'], '{'),\r\n  endsWith(item()?['changedata'], '}'),\r\n  contains(item()?['changedata'], 'changedAttributes')\r\n)"
+                  },
+                  "metadata": {
+                    "operationMetadataId": "2ededf10-4f96-40b2-9216-143ae3b19372"
+                  }
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "APICalledAndParsed": [
+              "Succeeded"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}
