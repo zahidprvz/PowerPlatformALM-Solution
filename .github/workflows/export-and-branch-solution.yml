@@ -1,6 +1,4 @@
 name: export-and-branch-solution
-# Export solution from Dev environment,
-# unpack it, prepare for PR, and commit Managed & Unmanaged zips
 
 on:
   workflow_dispatch:
@@ -23,10 +21,11 @@ on:
         default: solutions/
 
 env:
-  ENVIRONMENT_URL: ${{ env.ENVIRONMENT_URL }}
-  CLIENT_ID: ${{ env.CLIENT_ID }}
-  TENANT_ID: ${{ env.TENANT_ID }}
-  CLIENT_SECRET: ${{ env.CLIENT_SECRET }}
+  ENVIRONMENT_URL: ${{ vars.ENVIRONMENT_URL }}
+  CLIENT_ID: ${{ vars.CLIENT_ID }}
+  TENANT_ID: ${{ vars.TENANT_ID }}
+  CLIENT_SECRET: ${{ vars.CLIENT_SECRET }}
+  GITTOKEN: ${{ vars.GITTOKEN }}
 
 permissions:
   contents: write
@@ -96,7 +95,7 @@ jobs:
       with:
         solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
         solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
-        repo-token: ${{ secrets.GITHUB_TOKEN }} # Keep this as is — GitHub provides this automatically
+        repo-token: ${{ env.GITTOKEN }}
 
     - name: Commit Managed Zip to Git
       run: |
