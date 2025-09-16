@@ -23,9 +23,10 @@ on:
         default: solutions/
 
 env:
-  ENVIRONMENT_URL: ${{ secrets.ENVIRONMENT_URL }}
-  CLIENT_ID: ${{ secrets.CLIENT_ID }}
-  TENANT_ID: ${{ secrets.TENANT_ID }}
+  ENVIRONMENT_URL: ${{ env.ENVIRONMENT_URL }}
+  CLIENT_ID: ${{ env.CLIENT_ID }}
+  TENANT_ID: ${{ env.TENANT_ID }}
+  CLIENT_SECRET: ${{ env.CLIENT_SECRET }}
 
 permissions:
   contents: write
@@ -50,7 +51,7 @@ jobs:
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
         app-id: ${{ env.CLIENT_ID }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
+        client-secret: ${{ env.CLIENT_SECRET }}
         tenant-id: ${{ env.TENANT_ID }}
 
     - name: Export Solution (Unmanaged)
@@ -58,7 +59,7 @@ jobs:
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
         app-id: ${{ env.CLIENT_ID }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
+        client-secret: ${{ env.CLIENT_SECRET }}
         tenant-id: ${{ env.TENANT_ID }}
         solution-name: ${{ github.event.inputs.solution_name }}
         solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip
@@ -68,7 +69,7 @@ jobs:
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
         app-id: ${{ env.CLIENT_ID }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
+        client-secret: ${{ env.CLIENT_SECRET }}
         tenant-id: ${{ env.TENANT_ID }}
         solution-name: ${{ github.event.inputs.solution_name }}
         solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Managed.zip
@@ -87,7 +88,7 @@ jobs:
       with:
         environment-url: ${{ env.ENVIRONMENT_URL }}
         app-id: ${{ env.CLIENT_ID }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
+        client-secret: ${{ env.CLIENT_SECRET }}
         tenant-id: ${{ env.TENANT_ID }}
 
     - name: Branch Solution (prepare for PR)
@@ -95,8 +96,7 @@ jobs:
       with:
         solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
         solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        allow-empty-commit: true
+        repo-token: ${{ secrets.GITHUB_TOKEN }} # Keep this as is — GitHub provides this automatically
 
     - name: Commit Managed Zip to Git
       run: |
