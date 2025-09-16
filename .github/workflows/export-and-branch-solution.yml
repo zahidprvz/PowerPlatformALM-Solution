@@ -6,42 +6,48 @@ on:
       solution_name:
         description: 'Name of the solution to export'
         required: true
+        default: Zyris
       solution_exported_folder:
-        description: 'Folder to store the exported solution zip'
-        default: 'out/exported'
+        description: 'Folder for exported zips'
+        required: true
+        default: out/exported/
       solution_folder:
-        description: 'Folder to unpack the solution'
-        default: 'out/solutions'
-      solution_target_folder:
-        description: 'Folder to commit solution into'
-        default: 'solutions'
-      managed_folder:
-        description: 'Folder to store managed zips for deployment'
-        default: 'out/managed'
+        description: 'Folder for unpacked solution (Unmanaged)'
+        required: true
+        default: out/solutions/
+      solution_target_folder: 
+        description: 'Folder to commit to repo'
+        required: true
+        default: solutions/
 
 env:
-  ENVIRONMENT_URL: ${{ secrets.ENVIRONMENT_URL }}
-  CLIENT_ID: ${{ secrets.CLIENT_ID }}
-  TENANT_ID: ${{ secrets.TENANT_ID }}
-  CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-  GITTOKEN: ${{ secrets.GITTOKEN }}
+  ENVIRONMENT_URL: ${{ vars.ENVIRONMENT_URL }}
+  CLIENT_ID: ${{ vars.CLIENT_ID }}
+  TENANT_ID: ${{ vars.TENANT_ID }}
+  CLIENT_SECRET: ${{ vars.CLIENT_SECRET }}
+  GITTOKEN: ${{ vars.GITTOKEN }}
+
+permissions:
+  contents: write
 
 jobs:
   export-from-dev:
     runs-on: windows-latest
     timeout-minutes: 720
+    env:
+      RUNNER_DEBUG: 1
 
     steps:
       - uses: actions/checkout@v2
         with:
           lfs: true
 
-      - name: Ensure folders exist
+      - name: Create required directories
         run: |
-          mkdir -p "${{ github.event.inputs.solution_exported_folder }}"
-          mkdir -p "${{ github.event.inputs.solution_folder }}"
-          mkdir -p "${{ github.event.inputs.solution_target_folder }}"
-          mkdir -p "${{ github.event.inputs.managed_folder }}"
+          New-Item -ItemType Directory -Force -Path "out/exported" | Out-Null
+          New-Item -ItemType Directory -Force -Path "out/solutions" | Out-Null
+          New-Item -ItemType Directory -Force -Path "solutions" | Out-Null
+          New-Item -ItemType Directory -Force -Path "out/managed" | Out-Null
         shell: pwsh
 
       - name: Install Power Platform Tools
@@ -52,36 +58,36 @@ jobs:
         with:
           environment-url: ${{ env.ENVIRONMENT_URL }}
           app-id: ${{ env.CLIENT_ID }}
-          tenant-id: ${{ env.TENANT_ID }}
           client-secret: ${{ env.CLIENT_SECRET }}
+          tenant-id: ${{ env.TENANT_ID }}
 
       - name: Export Solution (Unmanaged)
         uses: microsoft/powerplatform-actions/export-solution@v1
         with:
           environment-url: ${{ env.ENVIRONMENT_URL }}
           app-id: ${{ env.CLIENT_ID }}
-          tenant-id: ${{ env.TENANT_ID }}
           client-secret: ${{ env.CLIENT_SECRET }}
+          tenant-id: ${{ env.TENANT_ID }}
           solution-name: ${{ github.event.inputs.solution_name }}
-          solution-output-file: ${{ github.event.inputs.solution_exported_folder }}/${{ github.event.inputs.solution_name }}_Unmanaged.zip
+          solution-output-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip
 
       - name: Export Solution (Managed)
         uses: microsoft/powerplatform-actions/export-solution@v1
         with:
           environment-url: ${{ env.ENVIRONMENT_URL }}
           app-id: ${{ env.CLIENT_ID }}
-          tenant-id: ${{ env.TENANT_ID }}
           client-secret: ${{ env.CLIENT_SECRET }}
+          tenant-id: ${{ env.TENANT_ID }}
           solution-name: ${{ github.event.inputs.solution_name }}
-          solution-output-file: ${{ github.event.inputs.managed_folder }}/${{ github.event.inputs.solution_name }}_Managed.zip
+          solution-output-file: out/managed/${{ github.event.inputs.solution_name }}_Managed.zip
           managed: true
 
       - name: Unpack Unmanaged Solution
         uses: microsoft/powerplatform-actions/unpack-solution@v1
         with:
-          solution-file: ${{ github.event.inputs.solution_exported_folder }}/${{ github.event.inputs.solution_name }}_Unmanaged.zip
-          solution-folder: ${{ github.event.inputs.solution_folder }}/${{ github.event.inputs.solution_name }}
-          solution-type: 'Unmanaged'
+          solution-file: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip
+          solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
+          solution-type: Unmanaged
           overwrite-files: true
 
       - name: Publish Solution in Dev
@@ -89,17 +95,20 @@ jobs:
         with:
           environment-url: ${{ env.ENVIRONMENT_URL }}
           app-id: ${{ env.CLIENT_ID }}
-          tenant-id: ${{ env.TENANT_ID }}
           client-secret: ${{ env.CLIENT_SECRET }}
+          tenant-id: ${{ env.TENANT_ID }}
 
-      - name: Commit Solution Source + Managed ZIP
+      - name: Branch Solution (prepare for PR)
+        uses: microsoft/powerplatform-actions/branch-solution@v1
+        with:
+          solution-folder: ${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}
+          solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
+          repo-token: ${{ env.GITTOKEN }}
+
+      - name: Commit Managed Zip to Git
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add ${{ github.event.inputs.solution_folder }}
-          git add ${{ github.event.inputs.managed_folder }}
-          git commit -m "Exported ${{ github.event.inputs.solution_name }} (unmanaged + managed)"
-          git push
-        env:
-          GIT_TOKEN: ${{ env.GITTOKEN }}
-        shell: pwsh
+          git add out/managed/${{ github.event.inputs.solution_name }}_Managed.zip
+          git commit -m "Add Managed solution zip for ${{ github.event.inputs.solution_name }}" || echo "No changes to commit"
+          git push https://x-access-token:${{ env.GITTOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref }}
