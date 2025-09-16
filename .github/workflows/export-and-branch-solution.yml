@@ -49,6 +49,9 @@ jobs:
           echo "GITTOKEN length=$($env:GITTOKEN.Length)"
         shell: pwsh
 
+      - name: Install Power Platform Tools
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
       - name: who-am-i
         uses: microsoft/powerplatform-actions/who-am-i@v1
         with:
