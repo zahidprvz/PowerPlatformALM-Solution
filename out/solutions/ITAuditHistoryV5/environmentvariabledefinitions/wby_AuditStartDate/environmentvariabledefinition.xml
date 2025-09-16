@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="wby_AuditStartDate">
+  <defaultvalue>2025-07-14T00:00:00Z</defaultvalue>
+  <description default="Enter the Data and Time from which you want the audit data">
+    <label description="Enter the Data and Time from which you want the audit data" languagecode="1033" />
+  </description>
+  <displayname default="AuditStartDate">
+    <label description="AuditStartDate" languagecode="1033" />
+  </displayname>
+  <introducedversion>1.0.0.1</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>
