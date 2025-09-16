@@ -1,81 +1,70 @@
-name: deploy-solution-to-test
+name: import-solution-to-target
 
 on:
   workflow_dispatch:
     inputs:
       solution_name:
-        description: 'Name of the solution to deploy'
+        description: 'Name of the solution to import'
         required: true
-        default: Zyris
-      source_branch:
-        description: 'Git branch to pick the solution from'
-        required: true
-        default: main
+      solution_input_file:
+        description: 'Path to the solution zip file'
+        default: 'out/exported'
+      solution_folder:
+        description: 'Folder where the solution is unpacked'
+        default: 'out/solutions'
 
 env:
-  TARGET_ENVIRONMENT_URL: ${{ vars.TARGET_ENVIRONMENT_URL }}
-  CLIENT_ID: ${{ vars.CLIENT_ID }}
-  TENANT_ID: ${{ vars.TENANT_ID }}
-  CLIENT_SECRET: ${{ vars.CLIENT_SECRET }}
-  GITTOKEN: ${{ vars.GITTOKEN }}
-
-permissions:
-  contents: write
-  id-token: write
+  TARGET_ENVIRONMENT_URL: ${{ secrets.TARGET_ENVIRONMENT_URL }}
+  CLIENT_ID: ${{ secrets.CLIENT_ID }}
+  TENANT_ID: ${{ secrets.TENANT_ID }}
+  CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+  GITTOKEN: ${{ secrets.GITTOKEN }}
 
 jobs:
-  deploy-to-test:
+  import-to-target:
     runs-on: windows-latest
     timeout-minutes: 720
-    env:
-      RUNNER_DEBUG: 1
+
     steps:
-      - name: Checkout selected branch
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.inputs.source_branch }}
           lfs: true
 
       - name: Ensure folders exist
         run: |
-          mkdir -p out/exported/
+          mkdir -p "${{ github.event.inputs.solution_input_file }}"
+          mkdir -p "${{ github.event.inputs.solution_folder }}"
+        shell: pwsh
 
       - name: Debug Vars
         run: |
-          echo "TARGET_ENVIRONMENT_URL=${{ env.TARGET_ENVIRONMENT_URL }}"
-          echo "CLIENT_ID=${{ env.CLIENT_ID }}"
-          echo "TENANT_ID=${{ env.TENANT_ID }}"
-          echo "CLIENT_SECRET length=${#{{ env.CLIENT_SECRET }}}"
-          echo "GITTOKEN length=${#{{ env.GITTOKEN }}}"
+          echo "TARGET_ENVIRONMENT_URL=$env:TARGET_ENVIRONMENT_URL"
+          echo "CLIENT_ID=$env:CLIENT_ID"
+          echo "TENANT_ID=$env:TENANT_ID"
+          echo "CLIENT_SECRET length=$($env:CLIENT_SECRET.Length)"
+          echo "GITTOKEN length=$($env:GITTOKEN.Length)"
+        shell: pwsh
 
-      - name: Install Power Platform CLI
-        uses: microsoft/powerplatform-actions/actions-install@v1
-
-      - name: Who Am I (Test Environment)
+      - name: who-am-i
         uses: microsoft/powerplatform-actions/who-am-i@v1
         with:
           environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
           app-id: ${{ env.CLIENT_ID }}
-          client-secret: ${{ env.CLIENT_SECRET }}
           tenant-id: ${{ env.TENANT_ID }}
+          client-secret: ${{ env.CLIENT_SECRET }}
 
-      - name: Import Managed Solution to Test
+      - name: pack-solution
+        uses: microsoft/powerplatform-actions/pack-solution@v1
+        with:
+          solution-folder: ${{ github.event.inputs.solution_folder }}/${{ github.event.inputs.solution_name }}
+          solution-file: ${{ github.event.inputs.solution_input_file }}/${{ github.event.inputs.solution_name }}.zip
+          solution-type: 'Unmanaged'
+
+      - name: import-solution
         uses: microsoft/powerplatform-actions/import-solution@v1
         with:
           environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
           app-id: ${{ env.CLIENT_ID }}
-          client-secret: ${{ env.CLIENT_SECRET }}
           tenant-id: ${{ env.TENANT_ID }}
-          solution-file: ./out/exported/${{ github.event.inputs.solution_name }}_Managed.zip
-          activate-plugins: true
-          force-overwrite: false
-          skip-dependency-check: false
-          convert-to-managed: true
-
-      - name: Publish Solution in Test
-        uses: microsoft/powerplatform-actions/publish-solution@v1
-        with:
-          environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ env.CLIENT_ID }}
           client-secret: ${{ env.CLIENT_SECRET }}
-          tenant-id: ${{ env.TENANT_ID }}
+          solution-input-file: ${{ github.event.inputs.solution_input_file }}/${{ github.event.inputs.solution_name }}.zip
