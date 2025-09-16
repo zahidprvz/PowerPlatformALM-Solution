@@ -15,6 +15,9 @@ on:
       solution_target_folder:
         description: 'Folder to commit solution into'
         default: 'solutions'
+      managed_folder:
+        description: 'Folder to store managed zips for deployment'
+        default: 'out/managed'
 
 env:
   ENVIRONMENT_URL: ${{ secrets.ENVIRONMENT_URL }}
@@ -38,21 +41,13 @@ jobs:
           mkdir -p "${{ github.event.inputs.solution_exported_folder }}"
           mkdir -p "${{ github.event.inputs.solution_folder }}"
           mkdir -p "${{ github.event.inputs.solution_target_folder }}"
-        shell: pwsh
-
-      - name: Debug Vars
-        run: |
-          echo "ENVIRONMENT_URL=$env:ENVIRONMENT_URL"
-          echo "CLIENT_ID=$env:CLIENT_ID"
-          echo "TENANT_ID=$env:TENANT_ID"
-          echo "CLIENT_SECRET length=$($env:CLIENT_SECRET.Length)"
-          echo "GITTOKEN length=$($env:GITTOKEN.Length)"
+          mkdir -p "${{ github.event.inputs.managed_folder }}"
         shell: pwsh
 
       - name: Install Power Platform Tools
         uses: microsoft/powerplatform-actions/actions-install@v1
 
-      - name: who-am-i
+      - name: Who Am I (Dev)
         uses: microsoft/powerplatform-actions/who-am-i@v1
         with:
           environment-url: ${{ env.ENVIRONMENT_URL }}
@@ -60,7 +55,7 @@ jobs:
           tenant-id: ${{ env.TENANT_ID }}
           client-secret: ${{ env.CLIENT_SECRET }}
 
-      - name: export-solution
+      - name: Export Solution (Unmanaged)
         uses: microsoft/powerplatform-actions/export-solution@v1
         with:
           environment-url: ${{ env.ENVIRONMENT_URL }}
@@ -68,20 +63,43 @@ jobs:
           tenant-id: ${{ env.TENANT_ID }}
           client-secret: ${{ env.CLIENT_SECRET }}
           solution-name: ${{ github.event.inputs.solution_name }}
-          solution-output-file: ${{ github.event.inputs.solution_exported_folder }}/${{ github.event.inputs.solution_name }}.zip
+          solution-output-file: ${{ github.event.inputs.solution_exported_folder }}/${{ github.event.inputs.solution_name }}_Unmanaged.zip
 
-      - name: unpack-solution
+      - name: Export Solution (Managed)
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ env.ENVIRONMENT_URL }}
+          app-id: ${{ env.CLIENT_ID }}
+          tenant-id: ${{ env.TENANT_ID }}
+          client-secret: ${{ env.CLIENT_SECRET }}
+          solution-name: ${{ github.event.inputs.solution_name }}
+          solution-output-file: ${{ github.event.inputs.managed_folder }}/${{ github.event.inputs.solution_name }}_Managed.zip
+          managed: true
+
+      - name: Unpack Unmanaged Solution
         uses: microsoft/powerplatform-actions/unpack-solution@v1
         with:
-          solution-file: ${{ github.event.inputs.solution_exported_folder }}/${{ github.event.inputs.solution_name }}.zip
+          solution-file: ${{ github.event.inputs.solution_exported_folder }}/${{ github.event.inputs.solution_name }}_Unmanaged.zip
           solution-folder: ${{ github.event.inputs.solution_folder }}/${{ github.event.inputs.solution_name }}
           solution-type: 'Unmanaged'
           overwrite-files: true
 
-      - name: branch-solution
-        uses: microsoft/powerplatform-actions/branch-solution@v1
+      - name: Publish Solution in Dev
+        uses: microsoft/powerplatform-actions/publish-solution@v1
         with:
-          solution-folder: ${{ github.event.inputs.solution_folder }}/${{ github.event.inputs.solution_name }}
-          solution-target-folder: ${{ github.event.inputs.solution_target_folder }}/${{ github.event.inputs.solution_name }}
-          repo-token: ${{ env.GITTOKEN }}
-          allow-empty-commit: true
+          environment-url: ${{ env.ENVIRONMENT_URL }}
+          app-id: ${{ env.CLIENT_ID }}
+          tenant-id: ${{ env.TENANT_ID }}
+          client-secret: ${{ env.CLIENT_SECRET }}
+
+      - name: Commit Solution Source + Managed ZIP
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add ${{ github.event.inputs.solution_folder }}
+          git add ${{ github.event.inputs.managed_folder }}
+          git commit -m "Exported ${{ github.event.inputs.solution_name }} (unmanaged + managed)"
+          git push
+        env:
+          GIT_TOKEN: ${{ env.GITTOKEN }}
+        shell: pwsh
