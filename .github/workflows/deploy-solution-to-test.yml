@@ -1,17 +1,14 @@
-name: deploy-solution-to-target
+name: deploy-solution-to-test
 
 on:
   workflow_dispatch:
     inputs:
       solution_name:
-        description: 'Name of the solution to import'
+        description: 'Name of the solution to deploy'
         required: true
-      solution_input_file:
-        description: 'Path to the solution zip file'
-        default: 'out/exported'
-      solution_folder:
-        description: 'Folder where the solution is unpacked'
-        default: 'out/solutions'
+      source_branch:
+        description: 'Git branch to pick the solution from'
+        default: main
 
 env:
   TARGET_ENVIRONMENT_URL: ${{ secrets.TARGET_ENVIRONMENT_URL }}
@@ -21,20 +18,16 @@ env:
   GITTOKEN: ${{ secrets.GITTOKEN }}
 
 jobs:
-  import-to-target:
+  deploy-to-test:
     runs-on: windows-latest
     timeout-minutes: 720
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout selected branch
+        uses: actions/checkout@v2
         with:
+          ref: ${{ github.event.inputs.source_branch }}
           lfs: true
-
-      - name: Ensure folders exist
-        run: |
-          mkdir -p "${{ github.event.inputs.solution_input_file }}"
-          mkdir -p "${{ github.event.inputs.solution_folder }}"
-        shell: pwsh
 
       - name: Debug Vars
         run: |
@@ -45,7 +38,10 @@ jobs:
           echo "GITTOKEN length=$($env:GITTOKEN.Length)"
         shell: pwsh
 
-      - name: who-am-i
+      - name: Install Power Platform Tools
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Who Am I (Test Environment)
         uses: microsoft/powerplatform-actions/who-am-i@v1
         with:
           environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
@@ -53,18 +49,23 @@ jobs:
           tenant-id: ${{ env.TENANT_ID }}
           client-secret: ${{ env.CLIENT_SECRET }}
 
-      - name: pack-solution
-        uses: microsoft/powerplatform-actions/pack-solution@v1
-        with:
-          solution-folder: ${{ github.event.inputs.solution_folder }}/${{ github.event.inputs.solution_name }}
-          solution-file: ${{ github.event.inputs.solution_input_file }}/${{ github.event.inputs.solution_name }}.zip
-          solution-type: 'Unmanaged'
-
-      - name: import-solution
+      - name: Import Managed Solution to Test
         uses: microsoft/powerplatform-actions/import-solution@v1
         with:
           environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
           app-id: ${{ env.CLIENT_ID }}
           tenant-id: ${{ env.TENANT_ID }}
           client-secret: ${{ env.CLIENT_SECRET }}
-          solution-input-file: ${{ github.event.inputs.solution_input_file }}/${{ github.event.inputs.solution_name }}.zip
+          solution-file: ./out/exported/${{ github.event.inputs.solution_name }}_Managed.zip
+          activate-plugins: true
+          force-overwrite: false
+          skip-dependency-check: false
+          convert-to-managed: true
+
+      - name: Publish Solution in Test
+        uses: microsoft/powerplatform-actions/publish-solution@v1
+        with:
+          environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
+          app-id: ${{ env.CLIENT_ID }}
+          tenant-id: ${{ env.TENANT_ID }}
+          client-secret: ${{ env.CLIENT_SECRET }}
