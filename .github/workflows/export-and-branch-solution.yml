@@ -44,6 +44,27 @@ jobs:
           New-Item -ItemType Directory -Force -Path "out/managed" | Out-Null
         shell: pwsh
 
+      - name: Clean existing solution files
+        run: |
+          $unmanagedPath = "${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip"
+          $managedPath = "out/managed/${{ github.event.inputs.solution_name }}_Managed.zip"
+          $unpackedPath = "${{ github.event.inputs.solution_folder }}${{ github.event.inputs.solution_name }}"
+          
+          if (Test-Path $unmanagedPath) {
+            Remove-Item $unmanagedPath -Force
+            Write-Host "🗑️ Removed existing unmanaged solution: $unmanagedPath"
+          }
+          if (Test-Path $managedPath) {
+            Remove-Item $managedPath -Force
+            Write-Host "🗑️ Removed existing managed solution: $managedPath"
+          }
+          if (Test-Path $unpackedPath) {
+            Remove-Item $unpackedPath -Recurse -Force
+            Write-Host "🗑️ Removed existing unpacked solution: $unpackedPath"
+          }
+          Write-Host "✅ Cleanup completed"
+        shell: pwsh
+
       - name: Install Power Platform Tools
         uses: microsoft/powerplatform-actions/actions-install@v1
 
