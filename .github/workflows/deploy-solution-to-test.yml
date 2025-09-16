@@ -1,7 +1,4 @@
 name: deploy-solution-to-test
-# This workflow deploys a managed solution to the testing environment.
-# It checks out a specified branch, downloads the managed solution zip
-# file, and imports it into the target environment.
 on:
   workflow_dispatch:
     inputs:
@@ -29,41 +26,42 @@ jobs:
     timeout-minutes: 720
     env:
       RUNNER_DEBUG: 1
+
     steps:
-      - name: Checkout selected branch and get latest changes
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.source_branch }}
-          lfs: true
-          fetch-depth: 0
+    - name: Checkout selected branch
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.inputs.source_branch }}
+        lfs: true
 
-      - name: Install Power Platform CLI
-        uses: microsoft/powerplatform-actions/actions-install@v1
+    - name: Install Power Platform CLI
+      uses: microsoft/powerplatform-actions/actions-install@v1
 
-      - name: Who Am I (Test Environment)
-        uses: microsoft/powerplatform-actions/who-am-i@v1
-        with:
-          environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ env.CLIENT_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
-          tenant-id: ${{ env.TENANT_ID }}
+    - name: Who Am I (Test Environment)
+      uses: microsoft/powerplatform-actions/who-am-i@v1
+      with:
+        environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
+        app-id: ${{ env.CLIENT_ID }}
+        client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
 
-      - name: Import Managed Solution to Test
-        uses: microsoft/powerplatform-actions/import-solution@v1
-        with:
-          environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ env.CLIENT_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
-          tenant-id: ${{ env.TENANT_ID }}
-          solution-file: ./out/exported/${{ github.event.inputs.solution_name }}_Managed.zip
-          activate-plugins: true
-          force-overwrite: true
-          skip-dependency-check: false
+    - name: Import Managed Solution to Test
+      uses: microsoft/powerplatform-actions/import-solution@v1
+      with:
+        environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
+        app-id: ${{ env.CLIENT_ID }}
+        client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
+        solution-file: ./out/exported/${{ github.event.inputs.solution_name }}_Managed.zip
+        activate-plugins: true
+        force-overwrite: false
+        skip-dependency-check: false
+        convert-to-managed: true
 
-      - name: Publish Solution in Test
-        uses: microsoft/powerplatform-actions/publish-solution@v1
-        with:
-          environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ env.CLIENT_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
-          tenant-id: ${{ env.TENANT_ID }}
+    - name: Publish Solution in Test
+      uses: microsoft/powerplatform-actions/publish-solution@v1
+      with:
+        environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
+        app-id: ${{ env.CLIENT_ID }}
+        client-secret: ${{ secrets.CLIENT_SECRET }}
+        tenant-id: ${{ env.TENANT_ID }}
