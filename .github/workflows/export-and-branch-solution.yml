@@ -6,7 +6,7 @@ on:
       solution_name:
         description: 'Name of the solution to export'
         required: true
-        default: Zyris
+        default: ITHistoryV5
       solution_exported_folder:
         description: 'Folder for exported zips'
         required: true
@@ -19,6 +19,15 @@ on:
         description: 'Folder to commit to repo'
         required: true
         default: solutions/
+      create_branch:
+        description: 'Create a new branch for this export'
+        type: boolean
+        required: false
+        default: true
+      branch_name:
+        description: 'Branch name (auto-generated if empty)'
+        required: false
+        default: ''
 
 env:
   ENVIRONMENT_URL: ${{ vars.ENVIRONMENT_URL }}
@@ -29,6 +38,7 @@ env:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   export-from-dev:
@@ -36,24 +46,52 @@ jobs:
     timeout-minutes: 720
     env:
       RUNNER_DEBUG: 1
+    outputs:
+      branch_name: ${{ steps.set-branch.outputs.branch_name }}
+      solution_name: ${{ github.event.inputs.solution_name }}
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
+          token: ${{ env.GITTOKEN }}
           lfs: true
+
+      - name: Set branch name
+        id: set-branch
+        run: |
+          if ("${{ github.event.inputs.branch_name }}" -eq "") {
+            $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+            $branchName = "solution/${{ github.event.inputs.solution_name }}-$timestamp"
+          } else {
+            $branchName = "${{ github.event.inputs.branch_name }}"
+          }
+          echo "branch_name=$branchName" >> $env:GITHUB_OUTPUT
+          echo "Generated branch name: $branchName"
+        shell: pwsh
+
+      - name: Create and switch to branch
+        if: ${{ github.event.inputs.create_branch == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b ${{ steps.set-branch.outputs.branch_name }}
+          git push -u origin ${{ steps.set-branch.outputs.branch_name }}
+        shell: pwsh
 
       - name: Create required directories
         run: |
-          New-Item -ItemType Directory -Force -Path "out/exported" | Out-Null
-          New-Item -ItemType Directory -Force -Path "out/solutions" | Out-Null
-          New-Item -ItemType Directory -Force -Path "solutions" | Out-Null
+          New-Item -ItemType Directory -Force -Path "${{ github.event.inputs.solution_exported_folder }}" | Out-Null
+          New-Item -ItemType Directory -Force -Path "${{ github.event.inputs.solution_folder }}" | Out-Null
+          New-Item -ItemType Directory -Force -Path "${{ github.event.inputs.solution_target_folder }}" | Out-Null
           New-Item -ItemType Directory -Force -Path "out/managed" | Out-Null
+          Write-Host "Created all required directories"
         shell: pwsh
 
       - name: Install Power Platform Tools
         uses: microsoft/powerplatform-actions/actions-install@v1
 
-      - name: Who Am I (Dev)
+      - name: Who Am I (Source Environment)
         uses: microsoft/powerplatform-actions/who-am-i@v1
         with:
           environment-url: ${{ env.ENVIRONMENT_URL }}
@@ -90,7 +128,7 @@ jobs:
           solution-type: Unmanaged
           overwrite-files: true
 
-      - name: Publish Solution in Dev
+      - name: Publish Solution in Source Environment
         uses: microsoft/powerplatform-actions/publish-solution@v1
         with:
           environment-url: ${{ env.ENVIRONMENT_URL }}
@@ -105,10 +143,62 @@ jobs:
           solution-target-folder: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}
           repo-token: ${{ env.GITTOKEN }}
 
-      - name: Commit Managed Zip to Git
+      - name: Commit all changes to Git
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add all solution files
+          git add ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}/
           git add out/managed/${{ github.event.inputs.solution_name }}_Managed.zip
-          git commit -m "Add Managed solution zip for ${{ github.event.inputs.solution_name }}" || echo "No changes to commit"
-          git push https://x-access-token:${{ env.GITTOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref }}
+          git add ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip
+          
+          # Check if there are changes to commit
+          $changes = git status --porcelain
+          if ($changes) {
+            git commit -m "Export solution ${{ github.event.inputs.solution_name }} - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+            git push origin HEAD
+            Write-Host "Changes committed and pushed successfully"
+          } else {
+            Write-Host "No changes to commit"
+          }
+        shell: pwsh
+
+      - name: Create Pull Request
+        if: ${{ github.event.inputs.create_branch == 'true' }}
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: ${{ steps.set-branch.outputs.branch_name }}
+          destination_branch: "main"
+          github_token: ${{ env.GITTOKEN }}
+          pr_title: "Solution Export: ${{ github.event.inputs.solution_name }}"
+          pr_body: |
+            ## Solution Export Summary
+            
+            **Solution Name:** ${{ github.event.inputs.solution_name }}
+            **Export Date:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+            **Source Environment:** ${{ env.ENVIRONMENT_URL }}
+            
+            ### Files Added/Updated:
+            - Managed solution: `out/managed/${{ github.event.inputs.solution_name }}_Managed.zip`
+            - Unmanaged solution: `${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip`
+            - Unpacked solution files: `${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}/`
+            
+            ### Next Steps:
+            - Review the changes
+            - Merge this PR to make the solution available for deployment
+            - Use the deploy-solution-to-test workflow to deploy to target environment
+          pr_allow_empty: false
+
+      - name: Export Summary
+        run: |
+          Write-Host "============================================"
+          Write-Host "EXPORT COMPLETED SUCCESSFULLY"
+          Write-Host "============================================"
+          Write-Host "Solution Name: ${{ github.event.inputs.solution_name }}"
+          Write-Host "Branch Name: ${{ steps.set-branch.outputs.branch_name }}"
+          Write-Host "Managed Solution Path: out/managed/${{ github.event.inputs.solution_name }}_Managed.zip"
+          Write-Host "Unmanaged Solution Path: ${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip"
+          Write-Host "Solution Files Path: ${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}/"
+          Write-Host "============================================"
+        shell: pwsh
