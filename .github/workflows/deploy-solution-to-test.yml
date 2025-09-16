@@ -29,14 +29,24 @@ jobs:
     timeout-minutes: 720
     env:
       RUNNER_DEBUG: 1
-
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.inputs.source_branch }}
           lfs: true
-          token: ${{ env.GITTOKEN }}
+
+      - name: Ensure folders exist
+        run: |
+          mkdir -p out/exported/
+
+      - name: Debug Vars
+        run: |
+          echo "TARGET_ENVIRONMENT_URL=${{ env.TARGET_ENVIRONMENT_URL }}"
+          echo "CLIENT_ID=${{ env.CLIENT_ID }}"
+          echo "TENANT_ID=${{ env.TENANT_ID }}"
+          echo "CLIENT_SECRET length=${#{{ env.CLIENT_SECRET }}}"
+          echo "GITTOKEN length=${#{{ env.GITTOKEN }}}"
 
       - name: Install Power Platform CLI
         uses: microsoft/powerplatform-actions/actions-install@v1
