@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="wby_AuditAPIBaseURL">
+  <defaultvalue>https://orgb433a40e.crm4.dynamics.com</defaultvalue>
+  <description default="Your environment URL">
+    <label description="Your environment URL" languagecode="1033" />
+  </description>
+  <displayname default="AuditAPIBaseURL">
+    <label description="AuditAPIBaseURL" languagecode="1033" />
+  </displayname>
+  <introducedversion>1.0.0.1</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>
