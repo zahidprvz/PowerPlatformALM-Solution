@@ -6,87 +6,39 @@ on:
       solution_name:
         description: 'Name of the solution to deploy'
         required: true
-        default: ITHistoryV5
+        default: ITAuditHistoryV5
       source_branch:
         description: 'Git branch to pick the solution from'
         required: true
         default: main
-      force_overwrite:
-        description: 'Force overwrite existing solution'
-        type: boolean
-        required: false
-        default: false
-      skip_dependency_check:
-        description: 'Skip dependency check during import'
-        type: boolean
-        required: false
-        default: false
-      activate_plugins:
-        description: 'Activate plugins after import'
-        type: boolean
-        required: false
-        default: true
-
-env:
-  TARGET_ENVIRONMENT_URL: ${{ vars.TARGET_ENVIRONMENT_URL }}
-  CLIENT_ID: ${{ vars.CLIENT_ID }}
-  TENANT_ID: ${{ vars.TENANT_ID }}
-  CLIENT_SECRET: ${{ vars.CLIENT_SECRET }}
-  GITTOKEN: ${{ vars.GITTOKEN }}
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  validate-solution:
-    runs-on: windows-latest
-    timeout-minutes: 30
-    outputs:
-      solution_exists: ${{ steps.check-solution.outputs.solution_exists }}
-    steps:
-      - name: Checkout selected branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.source_branch }}
-          lfs: true
-          token: ${{ env.GITTOKEN }}
-
-      - name: Check if managed solution file exists
-        id: check-solution
-        run: |
-          $solutionPath = "out/managed/${{ github.event.inputs.solution_name }}_Managed.zip"
-          if (Test-Path $solutionPath) {
-            $fileSize = (Get-Item $solutionPath).Length
-            echo "solution_exists=true" >> $env:GITHUB_OUTPUT
-            Write-Host "✅ Solution file found: $solutionPath (Size: $([math]::Round($fileSize/1MB, 2)) MB)"
-          } else {
-            echo "solution_exists=false" >> $env:GITHUB_OUTPUT
-            Write-Host "❌ Solution file not found: $solutionPath"
-            Write-Host "Available files in out/managed/:"
-            if (Test-Path "out/managed/") {
-              Get-ChildItem "out/managed/" | ForEach-Object { Write-Host "  - $($_.Name)" }
-            } else {
-              Write-Host "  Directory does not exist"
-            }
-          }
-        shell: pwsh
-
   deploy-to-test:
     runs-on: windows-latest
-    timeout-minutes: 720
-    needs: validate-solution
-    if: needs.validate-solution.outputs.solution_exists == 'true'
-    env:
-      RUNNER_DEBUG: 1
+    timeout-minutes: 30
 
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.source_branch }}
+          token: ${{ secrets.GITTOKEN }}
           lfs: true
-          token: ${{ env.GITTOKEN }}
+
+      - name: Verify solution file exists
+        run: |
+          $solutionPath = "out/managed/${{ github.event.inputs.solution_name }}_Managed.zip"
+          if (-not (Test-Path $solutionPath)) {
+            Write-Host "❌ Solution file not found: $solutionPath"
+            Write-Host "Please run the export workflow first."
+            exit 1
+          }
+          $fileSize = (Get-Item $solutionPath).Length
+          Write-Host "✅ Found solution file: $solutionPath ($([math]::Round($fileSize/1MB, 2)) MB)"
+        shell: pwsh
 
       - name: Install Power Platform CLI
         uses: microsoft/powerplatform-actions/actions-install@v1
@@ -94,87 +46,34 @@ jobs:
       - name: Who Am I (Target Environment)
         uses: microsoft/powerplatform-actions/who-am-i@v1
         with:
-          environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ env.CLIENT_ID }}
-          client-secret: ${{ env.CLIENT_SECRET }}
-          tenant-id: ${{ env.TENANT_ID }}
+          environment-url: ${{ secrets.TARGET_ENVIRONMENT_URL }}
+          app-id: ${{ secrets.CLIENT_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          tenant-id: ${{ secrets.TENANT_ID }}
 
-      - name: Verify solution file before import
-        run: |
-          $solutionPath = "out/managed/${{ github.event.inputs.solution_name }}_Managed.zip"
-          if (Test-Path $solutionPath) {
-            $fileSize = (Get-Item $solutionPath).Length
-            Write-Host "✅ Importing solution: $solutionPath"
-            Write-Host "📦 File size: $([math]::Round($fileSize/1MB, 2)) MB"
-            Write-Host "🌐 Target environment: ${{ env.TARGET_ENVIRONMENT_URL }}"
-            Write-Host "⚙️ Force overwrite: ${{ github.event.inputs.force_overwrite }}"
-            Write-Host "🔗 Skip dependency check: ${{ github.event.inputs.skip_dependency_check }}"
-            Write-Host "🔌 Activate plugins: ${{ github.event.inputs.activate_plugins }}"
-          } else {
-            Write-Error "Solution file not found: $solutionPath"
-            exit 1
-          }
-        shell: pwsh
-
-      - name: Import Managed Solution to Target Environment
+      - name: Import Managed Solution
         uses: microsoft/powerplatform-actions/import-solution@v1
         with:
-          environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ env.CLIENT_ID }}
-          client-secret: ${{ env.CLIENT_SECRET }}
-          tenant-id: ${{ env.TENANT_ID }}
+          environment-url: ${{ secrets.TARGET_ENVIRONMENT_URL }}
+          app-id: ${{ secrets.CLIENT_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          tenant-id: ${{ secrets.TENANT_ID }}
           solution-file: out/managed/${{ github.event.inputs.solution_name }}_Managed.zip
-          activate-plugins: ${{ github.event.inputs.activate_plugins }}
-          force-overwrite: ${{ github.event.inputs.force_overwrite }}
-          skip-dependency-check: ${{ github.event.inputs.skip_dependency_check }}
-          convert-to-managed: true
-          use-deployment-settings-file: false
-          maximum-async-wait-time: 60
+          force-overwrite: true
+          activate-plugins: true
 
-      - name: Publish Solution in Target Environment
+      - name: Publish Solution
         uses: microsoft/powerplatform-actions/publish-solution@v1
         with:
-          environment-url: ${{ env.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ env.CLIENT_ID }}
-          client-secret: ${{ env.CLIENT_SECRET }}
-          tenant-id: ${{ env.TENANT_ID }}
+          environment-url: ${{ secrets.TARGET_ENVIRONMENT_URL }}
+          app-id: ${{ secrets.CLIENT_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          tenant-id: ${{ secrets.TENANT_ID }}
 
       - name: Deployment Summary
         run: |
-          Write-Host "============================================"
-          Write-Host "DEPLOYMENT COMPLETED SUCCESSFULLY"
-          Write-Host "============================================"
-          Write-Host "Solution Name: ${{ github.event.inputs.solution_name }}"
-          Write-Host "Source Branch: ${{ github.event.inputs.source_branch }}"
-          Write-Host "Target Environment: ${{ env.TARGET_ENVIRONMENT_URL }}"
-          Write-Host "Solution File: out/managed/${{ github.event.inputs.solution_name }}_Managed.zip"
-          Write-Host "Force Overwrite: ${{ github.event.inputs.force_overwrite }}"
-          Write-Host "Skip Dependency Check: ${{ github.event.inputs.skip_dependency_check }}"
-          Write-Host "Activate Plugins: ${{ github.event.inputs.activate_plugins }}"
-          Write-Host "Deployment Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-          Write-Host "============================================"
-        shell: pwsh
-
-  deployment-failed:
-    runs-on: windows-latest
-    needs: validate-solution
-    if: needs.validate-solution.outputs.solution_exists == 'false'
-    steps:
-      - name: Solution not found error
-        run: |
-          Write-Host "============================================"
-          Write-Host "DEPLOYMENT FAILED - SOLUTION NOT FOUND"
-          Write-Host "============================================"
-          Write-Host "❌ The managed solution file was not found in the specified branch."
-          Write-Host ""
-          Write-Host "Expected path: out/managed/${{ github.event.inputs.solution_name }}_Managed.zip"
-          Write-Host "Source branch: ${{ github.event.inputs.source_branch }}"
-          Write-Host ""
-          Write-Host "Possible solutions:"
-          Write-Host "1. Run the 'export-and-branch-solution' workflow first"
-          Write-Host "2. Check if the solution name is correct"
-          Write-Host "3. Verify the branch contains the exported solution"
-          Write-Host "4. Make sure the export workflow completed successfully"
-          Write-Host "============================================"
-          exit 1
+          Write-Host "✅ Deployment completed successfully!"
+          Write-Host "Solution: ${{ github.event.inputs.solution_name }}"
+          Write-Host "Target: ${{ secrets.TARGET_ENVIRONMENT_URL }}"
+          Write-Host "Deployed at: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
         shell: pwsh
