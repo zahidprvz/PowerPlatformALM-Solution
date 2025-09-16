@@ -13,10 +13,11 @@ on:
         default: main
 
 env:
-  TARGET_ENVIRONMENT_URL: ${{ env.TARGET_ENVIRONMENT_URL }}
-  CLIENT_ID: ${{ env.CLIENT_ID }}
-  TENANT_ID: ${{ env.TENANT_ID }}
-  CLIENT_SECRET: ${{ env.CLIENT_SECRET }}
+  TARGET_ENVIRONMENT_URL: ${{ vars.TARGET_ENVIRONMENT_URL }}
+  CLIENT_ID: ${{ vars.CLIENT_ID }}
+  TENANT_ID: ${{ vars.TENANT_ID }}
+  CLIENT_SECRET: ${{ vars.CLIENT_SECRET }}
+  GITTOKEN: ${{ vars.GITTOKEN }}
 
 permissions:
   contents: write
@@ -28,12 +29,14 @@ jobs:
     timeout-minutes: 720
     env:
       RUNNER_DEBUG: 1
+
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.inputs.source_branch }}
           lfs: true
+          token: ${{ env.GITTOKEN }}
 
       - name: Install Power Platform CLI
         uses: microsoft/powerplatform-actions/actions-install@v1
