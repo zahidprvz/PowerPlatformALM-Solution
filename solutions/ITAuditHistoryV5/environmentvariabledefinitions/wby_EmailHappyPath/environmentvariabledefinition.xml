@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="wby_EmailHappyPath">
+  <defaultvalue>UmerHayat@Devsinc730.onmicrosoft.com</defaultvalue>
+  <description default="Email designated person the SharePoint Link">
+    <label description="Email designated person the SharePoint Link" languagecode="1033" />
+  </description>
+  <displayname default="AuditEmailHappyPath">
+    <label description="AuditEmailHappyPath" languagecode="1033" />
+  </displayname>
+  <introducedversion>1.0.0.1</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>
