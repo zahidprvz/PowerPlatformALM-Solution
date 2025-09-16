@@ -133,30 +133,32 @@ jobs:
         shell: pwsh
 
       - name: Create Pull Request
-        uses: repo-sync/pull-request@v2
-        with:
-          source_branch: ${{ steps.branch-setup.outputs.branch_name }}
-          destination_branch: "main"
-          github_token: ${{ secrets.GITTOKEN }}
-          pr_title: "Solution Export: ${{ github.event.inputs.solution_name }} - ${{ steps.branch-setup.outputs.branch_name }}"
-          pr_body: |
-            ## Solution Export Summary
-            
-            **Solution Name:** ${{ github.event.inputs.solution_name }}
-            **Branch:** ${{ steps.branch-setup.outputs.branch_name }}
-            **Export Date:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
-            **Source Environment:** ${{ secrets.ENVIRONMENT_URL }}
-            
-            ### Files Added/Updated:
-            - ✅ Managed solution: `out/managed/${{ github.event.inputs.solution_name }}_Managed.zip`
-            - ✅ Unmanaged solution: `${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip`
-            - ✅ Unpacked solution files: `${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}/`
-            
-            ### Next Steps:
-            1. Review the changes in this PR
-            2. Merge this PR to make the solution available in main branch
-            3. Use the **deploy-solution-to-test** workflow with branch `${{ steps.branch-setup.outputs.branch_name }}` or `main` (after merge)
-          pr_allow_empty: false
+        run: |
+          $title = "Solution Export: ${{ github.event.inputs.solution_name }} - ${{ steps.branch-setup.outputs.branch_name }}"
+          $body = @"
+## Solution Export Summary
+
+**Solution Name:** ${{ github.event.inputs.solution_name }}
+**Branch:** ${{ steps.branch-setup.outputs.branch_name }}
+**Export Date:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+**Source Environment:** ${{ secrets.ENVIRONMENT_URL }}
+
+### Files Added/Updated:
+- ✅ Managed solution: ``out/managed/${{ github.event.inputs.solution_name }}_Managed.zip``
+- ✅ Unmanaged solution: ``${{ github.event.inputs.solution_exported_folder }}${{ github.event.inputs.solution_name }}_Unmanaged.zip``
+- ✅ Unpacked solution files: ``${{ github.event.inputs.solution_target_folder }}${{ github.event.inputs.solution_name }}/``
+
+### Next Steps:
+1. Review the changes in this PR
+2. Merge this PR to make the solution available in main branch
+3. Use the **deploy-solution-to-test** workflow with branch ``${{ steps.branch-setup.outputs.branch_name }}`` or ``main`` (after merge)
+"@
+
+          gh pr create --title "$title" --body "$body" --base main --head ${{ steps.branch-setup.outputs.branch_name }}
+          Write-Host "✅ Pull Request created successfully"
+        env:
+          GH_TOKEN: ${{ secrets.GITTOKEN }}
+        shell: pwsh
 
       - name: Export Summary
         run: |
