@@ -1,0 +1,2210 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline-1": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "wby_SharePoint"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      },
+      "shared_office365-1": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "wby_Office365Outlook"
+        },
+        "api": {
+          "name": "shared_office365"
+        }
+      },
+      "shared_webcontents": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "wby_HTTPwithMicrosoftEntraID"
+        },
+        "api": {
+          "name": "shared_webcontents"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "undefined",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "AuditAPIBaseURL (wby_AuditAPIBaseURL)": {
+          "defaultValue": "https://auditweatherbys.crm4.dynamics.com",
+          "type": "String",
+          "metadata": {
+            "schemaName": "wby_AuditAPIBaseURL",
+            "description": "Your environment URL"
+          }
+        },
+        "AuditStartDate (wby_AuditStartDate)": {
+          "defaultValue": "2025-09-12T13:50:00Z",
+          "type": "String",
+          "metadata": {
+            "schemaName": "wby_AuditStartDate",
+            "description": "Enter the Data and Time from which you want the audit data"
+          }
+        },
+        "AuditEndDate (wby_AuditEndDate)": {
+          "defaultValue": "2025-09-12T14:00:00Z",
+          "type": "String",
+          "metadata": {
+            "schemaName": "wby_AuditEndDate",
+            "description": "Enter the End date and time till which you want the data"
+          }
+        },
+        "SharePointSiteAddress (wby_SharePointSiteAddress)": {
+          "defaultValue": "https://devsinc50.sharepoint.com/sites/AuditSite",
+          "type": "String",
+          "metadata": {
+            "schemaName": "wby_SharePointSiteAddress",
+            "description": "Site Address of your SharePoint"
+          }
+        },
+        "SharePointFolderPath (wby_SharePointFolderPath)": {
+          "defaultValue": "/Audit Files/",
+          "type": "String",
+          "metadata": {
+            "schemaName": "wby_SharePointFolderPath"
+          }
+        },
+        "SharePointFileName (wby_SharePointFileName)": {
+          "defaultValue": "23AuditLog_",
+          "type": "String",
+          "metadata": {
+            "schemaName": "wby_SharePointFileName",
+            "description": "File Name of the CSV File"
+          }
+        },
+        "AuditFileBatchSize (wby_FileBatchSize)": {
+          "defaultValue": 90000,
+          "type": "Int",
+          "metadata": {
+            "schemaName": "wby_FileBatchSize",
+            "description": "This Limit should be no more than 90k"
+          }
+        },
+        "AuditEmailErrorQuery (wby_EmailErrorQuery)": {
+          "defaultValue": "zayyed.0079@gmail.com",
+          "type": "String",
+          "metadata": {
+            "schemaName": "wby_EmailErrorQuery",
+            "description": "Error Notification"
+          }
+        },
+        "AuditEmailHappyPath (wby_EmailHappyPath)": {
+          "defaultValue": "zayyed.0079@gmail.com",
+          "type": "String",
+          "metadata": {
+            "schemaName": "wby_EmailHappyPath",
+            "description": "Email designated person the SharePoint Link"
+          }
+        },
+        "Table Name (wby_TableName)": {
+          "defaultValue": "umer_horserecord",
+          "type": "String",
+          "metadata": {
+            "schemaName": "wby_TableName",
+            "description": "Enter the logical name of a single table ONLY"
+          }
+        }
+      },
+      "triggers": {
+        "Recurrence": {
+          "recurrence": {
+            "frequency": "Month",
+            "interval": 1,
+            "timeZone": "GMT Standard Time",
+            "startTime": "2025-08-01T00:00:00Z"
+          },
+          "metadata": {
+            "operationMetadataId": "0aa7a85f-ac73-4d3a-b28c-ceb7d200a1a4"
+          },
+          "type": "Recurrence"
+        }
+      },
+      "actions": {
+        "varcollection": {
+          "runAfter": {
+            "varHttpResponse": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "e052571b-c5b2-4472-ab63-e482bac7d20c"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Collection",
+                "type": "array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "colAuditRecords": {
+          "runAfter": {
+            "varcollection": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "0377bb48-eee8-4a1b-9790-3006e2858b4f"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "colAuditRecords",
+                "type": "array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "varMorePages": {
+          "runAfter": {
+            "colAuditRecords": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "2cd56f23-a61d-4c83-910f-8fe6e5dafb1a"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "varMorePages",
+                "type": "boolean",
+                "value": true
+              }
+            ]
+          }
+        },
+        "colAllAuditLogs": {
+          "runAfter": {
+            "varMorePages": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "c41ce60e-e798-49a6-a017-4db623c031f3"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "colAllAuditLogs",
+                "type": "array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "varHttpResponse": {
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "f27e1381-5c5b-4dc7-a622-0ea0854cc205"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "varHttpResponse",
+                "type": "object",
+                "value": {}
+              }
+            ]
+          }
+        },
+        "ScopeTry": {
+          "actions": {
+            "Do_until": {
+              "actions": {
+                "Check_odataNextLink_Empty": {
+                  "actions": {
+                    "SetVarMorePages": {
+                      "runAfter": {},
+                      "metadata": {
+                        "operationMetadataId": "7db87fef-7d4e-4a2c-9093-03629d849315"
+                      },
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "varMorePages",
+                        "value": false
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Scope-Loop": [
+                      "TimedOut"
+                    ]
+                  },
+                  "else": {
+                    "actions": {
+                      "SetVarNextLink": {
+                        "runAfter": {},
+                        "metadata": {
+                          "operationMetadataId": "000055f3-4321-4c21-a108-b347d0e720e6"
+                        },
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "VarNextPageLink",
+                          "value": "@body('Parse_JSON_OdataNextLink')?['@odata.nextLink']"
+                        }
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@empty(body('Parse_JSON_OdataNextLink')?['@odata.nextLink'])",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "fed5abdf-7b7f-4065-a648-f6cc7f875240"
+                  },
+                  "type": "If"
+                },
+                "get_array_length": {
+                  "runAfter": {
+                    "Check_odataNextLink_Empty": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "fe314918-6579-405e-ac80-43aba86788f7"
+                  },
+                  "type": "Compose",
+                  "inputs": "@length(variables('Collection'))\r\n"
+                },
+                "Condition": {
+                  "actions": {
+                    "Create_CSV_table_2": {
+                      "runAfter": {},
+                      "metadata": {
+                        "operationMetadataId": "b8b18639-43a6-4a18-b2eb-ce5a0d2be584"
+                      },
+                      "type": "Table",
+                      "inputs": {
+                        "from": "@variables('Collection')",
+                        "format": "CSV"
+                      }
+                    },
+                    "AccessingSharePoint_2": {
+                      "runAfter": {
+                        "Increment_FileCounter1": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "0faefa98-62a7-480e-a6c3-50bfbee368d3"
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline-1",
+                          "operationId": "CreateFile",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset": "@parameters('SharePointSiteAddress (wby_SharePointSiteAddress)')",
+                          "folderPath": "@{parameters('SharePointFolderPath (wby_SharePointFolderPath)')}@{formatDateTime(utcNow(), 'dd-MM-yyyy')}",
+                          "name": "@{parameters('SharePointFileName (wby_SharePointFileName)')}@{utcNow('yyyyMMdd_HHmmss')}_@{variables('FileIterationNo')}.csv",
+                          "body": "@body('Create_CSV_table_2')"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runtimeConfiguration": {
+                        "contentTransfer": {
+                          "transferMode": "Chunked"
+                        }
+                      }
+                    },
+                    "Set_variable": {
+                      "runAfter": {
+                        "Send_an_email_(V2)_2": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "8d375bcc-8ef1-43e4-a059-98b9ff5c11f3"
+                      },
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "Collection",
+                        "value": []
+                      }
+                    },
+                    "Increment_FileCounter1": {
+                      "runAfter": {
+                        "Create_CSV_table_2": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "0beb8d50-9492-47ab-b341-9dc1f504b91b"
+                      },
+                      "type": "IncrementVariable",
+                      "inputs": {
+                        "name": "FileIterationNo",
+                        "value": 1
+                      }
+                    },
+                    "Send_an_email_(V2)_2": {
+                      "runAfter": {
+                        "AccessingSharePoint_2": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "55349cbf-66a0-4687-b956-e6f06df67080"
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_office365-1",
+                          "operationId": "SendEmailV2",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                        },
+                        "parameters": {
+                          "emailMessage/To": "@parameters('AuditEmailHappyPath (wby_EmailHappyPath)')",
+                          "emailMessage/Subject": "Audit File Generated",
+                          "emailMessage/Body": "<p class=\"editor-paragraph\"><br>Greetings,<br><br><br><br>The Audit files have been generated. Please click the below link to view.<br><br><br><br><a href=\"@{concat(parameters('SharePointSiteAddress (wby_SharePointSiteAddress)'), parameters('SharePointFolderPath (wby_SharePointFolderPath)'),formatDateTime(utcNow(), 'dd-MM-yyyy'))}\">Click to View</a><br><br><br><br>Regards,<br><br>WeatherBys</p><br><br>",
+                          "emailMessage/Importance": "Normal"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "get_array_length": [
+                      "Succeeded"
+                    ]
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "greater": [
+                          "@outputs('get_array_length')",
+                          "@variables('varFileBatchSize')"
+                        ]
+                      }
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "32d8cc3d-2005-4bcf-a369-4bd75641a46e"
+                  },
+                  "type": "If"
+                },
+                "Scope-Loop": {
+                  "actions": {
+                    "(Loop)_Iterate_through_Audit_Records": {
+                      "foreach": "@body('Filter_Parsed_JSON_Array_Via_Query')",
+                      "actions": {
+                        "Set_OperationAndAction": {
+                          "runAfter": {
+                            "Nullify_ProcessedAttributes": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "bdd37a4e-0cd4-4638-b4c5-bd13e57bfa81"
+                          },
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "varOperation",
+                            "value": "@if(equals(items('(Loop)_Iterate_through_Audit_Records')?['operation'],1),'create',\r\n   if(equals(items('(Loop)_Iterate_through_Audit_Records')?['operation'],2),'update',\r\n      if(equals(items('(Loop)_Iterate_through_Audit_Records')?['operation'],3),'delete','')\r\n   )\r\n)"
+                          }
+                        },
+                        "Parse_Changedata": {
+                          "runAfter": {
+                            "Set_OperationAndAction": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "ca6542dc-91bc-466f-9946-7cb796c5f25a"
+                          },
+                          "type": "ParseJson",
+                          "inputs": {
+                            "content": "@items('(Loop)_Iterate_through_Audit_Records')['changedata']",
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                "changedAttributes": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "logicalName": {
+                                        "type": "string"
+                                      },
+                                      "oldValue": {},
+                                      "newValue": {},
+                                      "oldName": {},
+                                      "newName": {}
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "Select_Records": {
+                          "runAfter": {
+                            "Apply_to_each_-_Process_lookups": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "238aaead-9419-4c6b-9fb8-01f46598c32e"
+                          },
+                          "type": "Select",
+                          "inputs": {
+                            "from": "@variables('ProcessedAttributes')\r\n",
+                            "select": {
+                              "RecordId": "@items('(Loop)_Iterate_through_Audit_Records')?['_objectid_value']",
+                              "AuditId": "@items('(Loop)_Iterate_through_Audit_Records')?['auditid']",
+                              "ActionId": "@items('(Loop)_Iterate_through_Audit_Records')?['action']",
+                              "Operation Id": "@items('(Loop)_Iterate_through_Audit_Records')?['operation']",
+                              "OldValue": "@item()?['oldValue']",
+                              "NewValue": "@item()?['newValue']",
+                              "CreatedOn": "@items('(Loop)_Iterate_through_Audit_Records')?['createdon']",
+                              "EntityName": "@items('(Loop)_Iterate_through_Audit_Records')?['objecttypecode']",
+                              "UserId": "@items('(Loop)_Iterate_through_Audit_Records')?['_userid_value']",
+                              "AttributeName": "@item()?['logicalName']",
+                              "Action": "@variables('varOperation')",
+                              "Operation": "@variables('varOperation')",
+                              "Username": "@items('(Loop)_Iterate_through_Audit_Records')?['userid']?['fullname']",
+                              "OptionSet OldName": "@item()?['oldName']",
+                              "OptionSet NewName": "@item()?['newName']"
+                            }
+                          }
+                        },
+                        "Scope-Loop2": {
+                          "actions": {
+                            "(Loop)_Get_a_Single_ChangedAttribute_Record": {
+                              "foreach": "@body('Select_Records')",
+                              "actions": {
+                                "Append_to_array_variable_Collection": {
+                                  "runAfter": {},
+                                  "metadata": {
+                                    "operationMetadataId": "34264bff-3b6f-44ca-a3eb-5fde8252c7d3"
+                                  },
+                                  "type": "AppendToArrayVariable",
+                                  "inputs": {
+                                    "name": "Collection",
+                                    "value": "@items('(Loop)_Get_a_Single_ChangedAttribute_Record')"
+                                  }
+                                }
+                              },
+                              "runAfter": {},
+                              "metadata": {
+                                "operationMetadataId": "46771c35-e12f-4ba2-b4b3-973910239ec7"
+                              },
+                              "type": "Foreach"
+                            }
+                          },
+                          "runAfter": {
+                            "Select_Records": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "f575c032-e420-436c-affb-32350eed9ac1"
+                          },
+                          "type": "Scope"
+                        },
+                        "Catch-Loop2": {
+                          "actions": {
+                            "Compose_3": {
+                              "runAfter": {},
+                              "metadata": {
+                                "operationMetadataId": "3e19a10d-2961-4476-8189-3cb01288af12"
+                              },
+                              "type": "Compose",
+                              "inputs": "@result('Scope-Loop2')"
+                            },
+                            "Send_an_email_(V2)_1_1": {
+                              "runAfter": {
+                                "Compose_3": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "55349cbf-66a0-4687-b956-e6f06df67080"
+                              },
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "host": {
+                                  "connectionName": "shared_office365-1",
+                                  "operationId": "SendEmailV2",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                                },
+                                "parameters": {
+                                  "emailMessage/To": "@parameters('AuditEmailErrorQuery (wby_EmailErrorQuery)')",
+                                  "emailMessage/Subject": "Audit File Generation Failed",
+                                  "emailMessage/Body": "<p class=\"editor-paragraph\"><br>Greetings,<br><br>There are some error in the Audit flow. Please see below.<br></p><br><p class=\"editor-paragraph\">Flow Name: @{workflow()?['displayName']}<br>Environment: @{workflow()?['tags']?['environmentName']}<br>Run URL: https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']['name']}<br><br>Details:<br>@{outputs('Compose_3')}<br></p><br><p class=\"editor-paragraph\"><br>Regards,<br><br>WeatherBys<br></p><br>",
+                                  "emailMessage/Importance": "Normal"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "Scope-Loop2": [
+                              "TimedOut",
+                              "Failed"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "098a2620-5a19-43a8-8a2c-e3b74e50c908"
+                          },
+                          "type": "Scope"
+                        },
+                        "Apply_to_each_-_Process_lookups": {
+                          "foreach": "@body('Parse_Changedata')['changedAttributes']",
+                          "actions": {
+                            "Condition_-_check_for_lookup": {
+                              "actions": {
+                                "Compose_-_entity": {
+                                  "runAfter": {},
+                                  "metadata": {
+                                    "operationMetadataId": "18505205-4e11-4e50-8cd3-cb98d3e85191"
+                                  },
+                                  "type": "Compose",
+                                  "inputs": "@first(\r\n  split(\r\n    if(\r\n      empty(items('Apply_to_each_-_Process_lookups')?['newValue']),\r\n      items('Apply_to_each_-_Process_lookups')?['oldValue'],\r\n      items('Apply_to_each_-_Process_lookups')?['newValue']\r\n    ),\r\n    ','\r\n  )\r\n)\r\n"
+                                },
+                                "Compose_-_Newguid": {
+                                  "runAfter": {
+                                    "Compose_-_entity": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "metadata": {
+                                    "operationMetadataId": "ea91cc9c-f498-4541-ba7d-e3047c5eb042"
+                                  },
+                                  "type": "Compose",
+                                  "inputs": "@if(\r\n  and(\r\n    contains(coalesce(items('Apply_to_each_-_Process_lookups')?['newValue'], ''), ','),\r\n    equals(\r\n      length(\r\n        last(\r\n          split(coalesce(items('Apply_to_each_-_Process_lookups')?['newValue'], ''), ',')\r\n        )\r\n      ),\r\n      36\r\n    )\r\n  ),\r\n  last(split(coalesce(items('Apply_to_each_-_Process_lookups')?['newValue'], ''), ',')),\r\n  null\r\n)\r\n"
+                                },
+                                "Compose_-_Oldguid": {
+                                  "runAfter": {
+                                    "Compose_-_Newguid": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "metadata": {
+                                    "operationMetadataId": "fb65816a-2711-4bcf-a2bf-81a791a42cd7"
+                                  },
+                                  "type": "Compose",
+                                  "inputs": "@if(\r\n  and(\r\n    contains(coalesce(items('Apply_to_each_-_Process_lookups')?['oldValue'], ''), ','),\r\n    equals(\r\n      length(\r\n        last(\r\n          split(coalesce(items('Apply_to_each_-_Process_lookups')?['oldValue'], ''), ',')\r\n        )\r\n      ),\r\n      36\r\n    )\r\n  ),\r\n  last(split(coalesce(items('Apply_to_each_-_Process_lookups')?['oldValue'], ''), ',')),\r\n  null\r\n)\r\n"
+                                },
+                                "view_allLookup_var": {
+                                  "runAfter": {
+                                    "Compose_-_Oldguid": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "metadata": {
+                                    "operationMetadataId": "6f8585a6-8078-460d-a7fa-f85a646c3768"
+                                  },
+                                  "type": "Compose",
+                                  "inputs": "@variables('AllLookupData')"
+                                },
+                                "table_objects": {
+                                  "runAfter": {
+                                    "view_allLookup_var": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "metadata": {
+                                    "operationMetadataId": "65f0e114-bcab-4d32-8d35-7acf15318737"
+                                  },
+                                  "type": "Compose",
+                                  "inputs": "@outputs('view_allLookup_var')?[outputs('Compose_-_entity')]"
+                                },
+                                "Set_new_lookup": {
+                                  "runAfter": {
+                                    "check_non-empty_old_lookup_": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "metadata": {
+                                    "operationMetadataId": "b255ac31-f171-41e0-8648-c83f0cd65900"
+                                  },
+                                  "type": "SetVariable",
+                                  "inputs": {
+                                    "name": "NewLookupValue",
+                                    "value": "@outputs('resolved_new_lookup_value')"
+                                  }
+                                },
+                                "Set_old_lookup": {
+                                  "runAfter": {
+                                    "Set_new_lookup": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "metadata": {
+                                    "operationMetadataId": "2404571f-b571-470f-b460-baebc21770f1"
+                                  },
+                                  "type": "SetVariable",
+                                  "inputs": {
+                                    "name": "OldLookupValue",
+                                    "value": "@outputs('resolved_old_lookup_value')"
+                                  }
+                                },
+                                "check_non-empty_new_lookup": {
+                                  "actions": {
+                                    "Filter_array_-_new_value": {
+                                      "runAfter": {},
+                                      "metadata": {
+                                        "operationMetadataId": "b1b4e015-2107-464e-a295-9f838fbcbe2e"
+                                      },
+                                      "type": "Query",
+                                      "inputs": {
+                                        "from": "@outputs('table_objects')",
+                                        "where": "@equals(item()?['id'],outputs('Compose_-_Newguid'))"
+                                      }
+                                    },
+                                    "resolved_new_lookup_value": {
+                                      "runAfter": {
+                                        "Filter_array_-_new_value": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "metadata": {
+                                        "operationMetadataId": "808c3d2d-b555-4e9a-98f5-a057c446e5c7"
+                                      },
+                                      "type": "Compose",
+                                      "inputs": "@first(body('Filter_array_-_new_value'))?['name']"
+                                    }
+                                  },
+                                  "runAfter": {
+                                    "table_objects": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "Set_new_lookups": {
+                                        "runAfter": {},
+                                        "metadata": {
+                                          "operationMetadataId": "2a3dd0d4-390d-438a-ad37-03b66292e541"
+                                        },
+                                        "type": "SetVariable",
+                                        "inputs": {
+                                          "name": "NewLookupValue",
+                                          "value": "@null"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "expression": {
+                                    "and": [
+                                      {
+                                        "not": {
+                                          "equals": [
+                                            "@equals(outputs('table_objects'), null)",
+                                            "@true"
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "metadata": {
+                                    "operationMetadataId": "94ae568d-3db9-40d9-9315-2090966384a4"
+                                  },
+                                  "type": "If"
+                                },
+                                "check_non-empty_old_lookup_": {
+                                  "actions": {
+                                    "Filter_array_-_old_value": {
+                                      "runAfter": {},
+                                      "metadata": {
+                                        "operationMetadataId": "bb8e76f3-0e53-4bb4-aeb5-127b3c9d1890"
+                                      },
+                                      "type": "Query",
+                                      "inputs": {
+                                        "from": "@outputs('table_objects')",
+                                        "where": "@equals(item()?['id'],outputs('Compose_-_Oldguid'))"
+                                      }
+                                    },
+                                    "resolved_old_lookup_value": {
+                                      "runAfter": {
+                                        "Filter_array_-_old_value": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "metadata": {
+                                        "operationMetadataId": "00252dfe-ebb4-433c-a0a6-107c5ffd430b"
+                                      },
+                                      "type": "Compose",
+                                      "inputs": "@first(body('Filter_array_-_old_value'))?['name']"
+                                    }
+                                  },
+                                  "runAfter": {
+                                    "check_non-empty_new_lookup": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "Set_old_lookups": {
+                                        "runAfter": {},
+                                        "metadata": {
+                                          "operationMetadataId": "5e6d3776-1adb-4443-871c-a335af4f6be4"
+                                        },
+                                        "type": "SetVariable",
+                                        "inputs": {
+                                          "name": "OldLookupValue",
+                                          "value": "@null"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "expression": {
+                                    "and": [
+                                      {
+                                        "not": {
+                                          "equals": [
+                                            "@equals(outputs('table_objects'), null)",
+                                            "@true"
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "metadata": {
+                                    "operationMetadataId": "fcae3f3a-6d2e-4869-ab76-ad8830b795e8"
+                                  },
+                                  "type": "If"
+                                }
+                              },
+                              "runAfter": {},
+                              "expression": {
+                                "or": [
+                                  {
+                                    "equals": [
+                                      "@and(\r\n  contains(\r\n    coalesce(items('Apply_to_each_-_Process_lookups')?['oldValue'], ''),\r\n    ','\r\n  ),\r\n  equals(\r\n    length(\r\n      last(\r\n        split(\r\n          coalesce(items('Apply_to_each_-_Process_lookups')?['oldValue'], ''),\r\n          ','\r\n        )\r\n      )\r\n    ),\r\n    36\r\n  )\r\n)\r\n",
+                                      true
+                                    ]
+                                  },
+                                  {
+                                    "equals": [
+                                      "@and(\r\n  contains(\r\n    coalesce(items('Apply_to_each_-_Process_lookups')?['newValue'], ''),\r\n    ','\r\n  ),\r\n  equals(\r\n    length(\r\n      last(\r\n        split(\r\n          coalesce(items('Apply_to_each_-_Process_lookups')?['newValue'], ''),\r\n          ','\r\n        )\r\n      )\r\n    ),\r\n    36\r\n  )\r\n)\r\n",
+                                      true
+                                    ]
+                                  }
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "62a76e68-3697-4e64-bec4-46f72e643a05"
+                              },
+                              "type": "If"
+                            },
+                            "Changedata_-_with_lookups": {
+                              "runAfter": {
+                                "view-new_val": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "2ee337bd-4ce0-498a-8c88-11e015a3a653"
+                              },
+                              "type": "Compose",
+                              "inputs": {
+                                "logicalName": "@{items('Apply_to_each_-_Process_lookups')['logicalName']}",
+                                "oldValue": "@{if(equals(variables('OldLookupValue'), null),items('Apply_to_each_-_Process_lookups')['oldValue'],variables('OldLookupValue'))}",
+                                "newValue": "@{if(equals(variables('NewLookupValue'), null),items('Apply_to_each_-_Process_lookups')['newValue'],variables('NewLookupValue'))}",
+                                "oldName": "@{coalesce(items('Apply_to_each_-_Process_lookups')?['oldName'], '')}",
+                                "newName": "@{coalesce(items('Apply_to_each_-_Process_lookups')?['newName'], '')}"
+                              }
+                            },
+                            "set_ProcessedAttributes": {
+                              "runAfter": {
+                                "Compose_6": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "cfeeba1b-14f4-4e36-98b6-eda948e66f3d"
+                              },
+                              "type": "AppendToArrayVariable",
+                              "inputs": {
+                                "name": "ProcessedAttributes",
+                                "value": "@outputs('Compose_6')"
+                              }
+                            },
+                            "Nullify_New_lookup_value": {
+                              "runAfter": {
+                                "set_ProcessedAttributes": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "7f235116-0283-4bc8-9d7a-254072e0cd4b"
+                              },
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "NewLookupValue",
+                                "value": "@null"
+                              }
+                            },
+                            "Nullify_Old_lookup_value_": {
+                              "runAfter": {
+                                "Nullify_New_lookup_value": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "247f54b8-b86b-4aa1-9166-719a5468aa7c"
+                              },
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "OldLookupValue",
+                                "value": "@null"
+                              }
+                            },
+                            "view-processedAttr": {
+                              "runAfter": {
+                                "Condition_-_check_for_lookup": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "45885287-1ed7-4ca3-ae42-4baa5b78d612"
+                              },
+                              "type": "Compose",
+                              "inputs": "@variables('ProcessedAttributes')"
+                            },
+                            "view-old_val": {
+                              "runAfter": {
+                                "view-processedAttr": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "2ac8dc75-3337-49b7-b714-3f5797e5538c"
+                              },
+                              "type": "Compose",
+                              "inputs": "@variables('OldLookupValue')"
+                            },
+                            "view-new_val": {
+                              "runAfter": {
+                                "view-old_val": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "cf8c607f-0dd4-4a49-aa9d-f8978f385b35"
+                              },
+                              "type": "Compose",
+                              "inputs": "@variables('NewLookupValue')"
+                            },
+                            "Compose_6": {
+                              "runAfter": {
+                                "Changedata_-_with_lookups": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "operationMetadataId": "64dcaf08-6d97-447b-af3a-3fdda0b4a7bc"
+                              },
+                              "type": "Compose",
+                              "inputs": "@outputs('Changedata_-_with_lookups')"
+                            }
+                          },
+                          "runAfter": {
+                            "Parse_Changedata": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "60d2e1f5-0b7e-4266-83df-5a2fa9c78020"
+                          },
+                          "type": "Foreach"
+                        },
+                        "Nullify_ProcessedAttributes": {
+                          "runAfter": {},
+                          "metadata": {
+                            "operationMetadataId": "622f18b3-e15c-4a50-b567-474843fb5fa1"
+                          },
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "ProcessedAttributes",
+                            "value": []
+                          }
+                        }
+                      },
+                      "runAfter": {},
+                      "metadata": {
+                        "operationMetadataId": "0bd0f5f7-19fb-4a11-a501-d8b1f9d07e4b"
+                      },
+                      "type": "Foreach",
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 20
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Filter_Parsed_JSON_Array_Via_Query": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "eed40274-4bab-421d-b54c-a9f407a6dec4"
+                  },
+                  "type": "Scope"
+                },
+                "HTTP_Request_Audit_Records": {
+                  "runAfter": {},
+                  "metadata": {
+                    "operationMetadataId": "816ee356-355c-431f-8815-11a76da2d702"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_webcontents",
+                      "operationId": "InvokeHttp",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                    },
+                    "parameters": {
+                      "request/method": "GET",
+                      "request/url": "@variables('VarNextPageLink')"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Parse_JSON_OdataNextLink": {
+                  "runAfter": {
+                    "HTTP_Request_Audit_Records": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "990e3852-b4c4-4691-b674-94c93f454a59"
+                  },
+                  "type": "ParseJson",
+                  "inputs": {
+                    "content": "@body('HTTP_Request_Audit_Records')",
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "statusCode": {
+                          "type": "integer"
+                        },
+                        "headers": {
+                          "type": "object",
+                          "properties": {
+                            "Cache-Control": {
+                              "type": "string"
+                            },
+                            "Vary": {
+                              "type": "string"
+                            },
+                            "Set-Cookie": {
+                              "type": "string"
+                            },
+                            "x-ms-service-request-id": {
+                              "type": "string"
+                            },
+                            "Strict-Transport-Security": {
+                              "type": "string"
+                            },
+                            "REQ_ID": {
+                              "type": "string"
+                            },
+                            "CRM.ServiceId": {
+                              "type": "string"
+                            },
+                            "AuthActivityId": {
+                              "type": "string"
+                            },
+                            "x-ms-dop-hint": {
+                              "type": "string"
+                            },
+                            "x-ms-ratelimit-time-remaining-xrm-requests": {
+                              "type": "string"
+                            },
+                            "x-ms-ratelimit-burst-remaining-xrm-requests": {
+                              "type": "string"
+                            },
+                            "mise-correlation-id": {
+                              "type": "string"
+                            },
+                            "X-Content-Type-Options": {
+                              "type": "string"
+                            },
+                            "OData-Version": {
+                              "type": "string"
+                            },
+                            "X-Source": {
+                              "type": "string"
+                            },
+                            "Public": {
+                              "type": "string"
+                            },
+                            "x-ms-client-region": {
+                              "type": "string"
+                            },
+                            "x-ms-flavor": {
+                              "type": "string"
+                            },
+                            "X-Ms-Workflow-Resourcegroup-Name": {
+                              "type": "string"
+                            },
+                            "x-ms-workflow-subscription-id": {
+                              "type": "string"
+                            },
+                            "x-ms-environment-id": {
+                              "type": "string"
+                            },
+                            "x-ms-tenant-id": {
+                              "type": "string"
+                            },
+                            "x-ms-subscription-id": {
+                              "type": "string"
+                            },
+                            "x-ms-dlp-re": {
+                              "type": "string"
+                            },
+                            "x-ms-dlp-gu": {
+                              "type": "string"
+                            },
+                            "x-ms-dlp-ef": {
+                              "type": "string"
+                            },
+                            "x-ms-mip-sl": {
+                              "type": "string"
+                            },
+                            "Timing-Allow-Origin": {
+                              "type": "string"
+                            },
+                            "x-ms-apihub-cached-response": {
+                              "type": "string"
+                            },
+                            "x-ms-apihub-obo": {
+                              "type": "string"
+                            },
+                            "Date": {
+                              "type": "string"
+                            },
+                            "Allow": {
+                              "type": "string"
+                            },
+                            "Content-Type": {
+                              "type": "string"
+                            },
+                            "Content-Length": {
+                              "type": "string"
+                            },
+                            "Expires": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "body": {
+                          "type": "object",
+                          "properties": {
+                            "@@odata.context": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "_regardingobjectid_value": {},
+                                  "operation": {
+                                    "type": "integer"
+                                  },
+                                  "createdon": {
+                                    "type": "string"
+                                  },
+                                  "auditid": {
+                                    "type": "string"
+                                  },
+                                  "_objectid_value": {
+                                    "type": "string"
+                                  },
+                                  "action": {
+                                    "type": "integer"
+                                  },
+                                  "useradditionalinfo": {},
+                                  "objecttypecode": {
+                                    "type": "string"
+                                  },
+                                  "_callinguserid_value": {},
+                                  "additionalinfo": {},
+                                  "transactionid": {
+                                    "type": "string"
+                                  },
+                                  "versionnumber": {
+                                    "type": "integer"
+                                  },
+                                  "_userid_value": {
+                                    "type": "string"
+                                  },
+                                  "changedata": {
+                                    "type": "string"
+                                  },
+                                  "timetoliveinseconds": {
+                                    "type": "integer"
+                                  },
+                                  "attributemask": {}
+                                },
+                                "required": [
+                                  "_regardingobjectid_value",
+                                  "operation",
+                                  "createdon",
+                                  "auditid",
+                                  "_objectid_value",
+                                  "action",
+                                  "useradditionalinfo",
+                                  "objecttypecode",
+                                  "_callinguserid_value",
+                                  "additionalinfo",
+                                  "transactionid",
+                                  "versionnumber",
+                                  "_userid_value",
+                                  "changedata",
+                                  "timetoliveinseconds",
+                                  "attributemask"
+                                ]
+                              }
+                            },
+                            "@@odata.nextLink": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "Filter_Parsed_JSON_Array_Via_Query": {
+                  "runAfter": {
+                    "Parse_JSON_OdataNextLink": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "2ededf10-4f96-40b2-9216-143ae3b19372"
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('Parse_JSON_OdataNextLink')?['value']",
+                    "where": "@and(\r\n  not(empty(item()?['changedata'])),\r\n  startsWith(item()?['changedata'], '{'),\r\n  endsWith(item()?['changedata'], '}'),\r\n  contains(item()?['changedata'], 'changedAttributes')\r\n)"
+                  }
+                },
+                "Catch-Loop": {
+                  "actions": {
+                    "Compose_2": {
+                      "runAfter": {},
+                      "metadata": {
+                        "operationMetadataId": "4866ed4d-f9e4-486f-ae78-b606b23c56f1"
+                      },
+                      "type": "Compose",
+                      "inputs": "@result('Scope-Loop')"
+                    },
+                    "Send_an_email_(V2)_1_2": {
+                      "runAfter": {
+                        "Compose_2": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "55349cbf-66a0-4687-b956-e6f06df67080"
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_office365-1",
+                          "operationId": "SendEmailV2",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                        },
+                        "parameters": {
+                          "emailMessage/To": "@parameters('AuditEmailErrorQuery (wby_EmailErrorQuery)')",
+                          "emailMessage/Subject": "Audit File Generation Failed",
+                          "emailMessage/Body": "<p class=\"editor-paragraph\"><br>Greetings,<br><br>There are some error in the Audit flow. Please see below.</p><br><br><p class=\"editor-paragraph\">Flow Name: @{workflow()?['displayName']}<br>Environment: @{workflow()?['tags']?['environmentName']}<br>Run URL: https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']['name']}<br><br>Details:<br>@{outputs('Compose_2')}</p><br><p class=\"editor-paragraph\"><br>Regards,<br><br>WeatherBys<br></p><br>",
+                          "emailMessage/Importance": "Normal"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Scope-Loop": [
+                      "TimedOut",
+                      "Failed"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "86b2e8e8-5e02-44ce-818b-f10cfdb14f97"
+                  },
+                  "type": "Scope"
+                }
+              },
+              "runAfter": {},
+              "expression": "@equals(variables('varMorePages'),false)",
+              "limit": {
+                "count": 1,
+                "timeout": "P30D"
+              },
+              "metadata": {
+                "operationMetadataId": "eab884b2-44fc-418a-af6c-4e8fa1a927ee"
+              },
+              "type": "Until"
+            },
+            "Create_CSV_table": {
+              "runAfter": {
+                "Do_until": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "b8b18639-43a6-4a18-b2eb-ce5a0d2be584"
+              },
+              "type": "Table",
+              "inputs": {
+                "from": "@variables('Collection')",
+                "format": "CSV"
+              }
+            },
+            "AccessingSharePoint": {
+              "runAfter": {
+                "Increment_FileCounter2": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "0faefa98-62a7-480e-a6c3-50bfbee368d3"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_sharepointonline-1",
+                  "operationId": "CreateFile",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                },
+                "parameters": {
+                  "dataset": "@parameters('SharePointSiteAddress (wby_SharePointSiteAddress)')",
+                  "folderPath": "@{parameters('SharePointFolderPath (wby_SharePointFolderPath)')}@{formatDateTime(utcNow(), 'dd-MM-yyyy')}",
+                  "name": "@{parameters('SharePointFileName (wby_SharePointFileName)')}@{utcNow('yyyyMMdd_HHmmss')}_@{variables('FileIterationNo')}_Finish.csv",
+                  "body": "@body('Create_CSV_table')"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "contentTransfer": {
+                  "transferMode": "Chunked"
+                }
+              }
+            },
+            "Send_an_email_(V2)": {
+              "runAfter": {
+                "AccessingSharePoint": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "55349cbf-66a0-4687-b956-e6f06df67080"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_office365-1",
+                  "operationId": "SendEmailV2",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                },
+                "parameters": {
+                  "emailMessage/To": "@parameters('AuditEmailHappyPath (wby_EmailHappyPath)')",
+                  "emailMessage/Subject": "Audit File Generated",
+                  "emailMessage/Body": "<br><p class=\"editor-paragraph\">Greetings,<br><br><br><br>The Audit files have been generated. Please click the below link to view.<br><br><br><a href=\"@{concat(parameters('SharePointSiteAddress (wby_SharePointSiteAddress)'), variables('Folder Path'))}\" class=\"editor-link\">Click to View</a></p><br><br><p class=\"editor-paragraph\"><br><br>Regards,<br><br>WeatherBys</p>",
+                  "emailMessage/Importance": "Normal"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Increment_FileCounter2": {
+              "runAfter": {
+                "Create_CSV_table": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "0beb8d50-9492-47ab-b341-9dc1f504b91b"
+              },
+              "type": "IncrementVariable",
+              "inputs": {
+                "name": "FileIterationNo",
+                "value": 1
+              }
+            }
+          },
+          "runAfter": {
+            "Apply_to_each": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "2a8fb29f-cd04-45b9-b700-58fe7ea51bfb"
+          },
+          "type": "Scope"
+        },
+        "Scope_-_Catch": {
+          "actions": {
+            "Compose": {
+              "runAfter": {},
+              "metadata": {
+                "operationMetadataId": "7075fe19-7eec-49a8-b587-fb46ad681ddb"
+              },
+              "type": "Compose",
+              "inputs": "@result('ScopeTry')"
+            },
+            "Send_an_email_(V2)_1_3": {
+              "runAfter": {
+                "Compose": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "55349cbf-66a0-4687-b956-e6f06df67080"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_office365-1",
+                  "operationId": "SendEmailV2",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                },
+                "parameters": {
+                  "emailMessage/To": "@parameters('AuditEmailErrorQuery (wby_EmailErrorQuery)')",
+                  "emailMessage/Subject": "Audit File Generation Failed",
+                  "emailMessage/Body": "<p class=\"editor-paragraph\"><br>Greetings,<br><br>There are some error in the Audit flow. Please see below.</p><br><br><p class=\"editor-paragraph\">Flow Name: @{workflow()?['displayName']}<br>Environment: @{workflow()?['tags']?['environmentName']}<br>Run URL: https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']['name']}<br><br><br>@{outputs('Compose')}</p><br><p class=\"editor-paragraph\"><br>Regards,<br><br>WeatherBys<br></p><br>",
+                  "emailMessage/Importance": "Normal"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runAfter": {
+            "ScopeTry": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "5c299e13-edee-4f13-888e-f0168ca465b7"
+          },
+          "type": "Scope"
+        },
+        "varStartDate": {
+          "runAfter": {
+            "colAllAuditLogs": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "fae7eb69-6a39-42f0-98ac-f4f72edfc152"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "StartDate",
+                "type": "string",
+                "value": "\"\""
+              }
+            ]
+          }
+        },
+        "varEndDate": {
+          "runAfter": {
+            "varStartDate": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "c05eb57e-48e7-45a8-96cf-b7cb2b4b5512"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "EndDate",
+                "type": "string",
+                "value": "\"\""
+              }
+            ]
+          }
+        },
+        "Scope_-_Variable_Initilalization": {
+          "actions": {
+            "Set_varStartDate": {
+              "runAfter": {},
+              "metadata": {
+                "operationMetadataId": "ec2a76f7-e807-4c75-a909-768573081fea"
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "StartDate",
+                "value": "@if(\r\n  or(empty(parameters('AuditStartDate (wby_AuditStartDate)')), equals(toLower(trim(parameters('AuditStartDate (wby_AuditStartDate)'))), 'null')),\r\n  formatDateTime(startOfMonth(addToTime(utcNow(), -1, 'Month')), 'yyyy-MM-ddT00:00:00Z'),\r\n  parameters('AuditStartDate (wby_AuditStartDate)')\r\n)"
+              }
+            },
+            "Set_EndDate": {
+              "runAfter": {
+                "Set_varStartDate": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "8238d73f-63ca-4175-9a62-ebac8c2dd7b5"
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "EndDate",
+                "value": "@if(\r\n  or(empty(parameters('AuditEndDate (wby_AuditEndDate)')), equals(toLower(trim(parameters('AuditEndDate (wby_AuditEndDate)'))), 'null')),\r\n  formatDateTime(addSeconds(startOfMonth(utcNow()), -1), 'yyyy-MM-ddTHH:mm:ssZ'),\r\n  parameters('AuditEndDate (wby_AuditEndDate)')\r\n)"
+              }
+            },
+            "Check_Table_Name": {
+              "actions": {
+                "All_Table_Filter_Expression": {
+                  "runAfter": {},
+                  "metadata": {
+                    "operationMetadataId": "97e66e8e-40de-490f-a020-d110e2b2c353"
+                  },
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "VarNextPageLink",
+                    "value": "@concat(\r\n    parameters('AuditAPIBaseURL (wby_AuditAPIBaseURL)'),'/api/data/v9.2/audits?',\r\n    '$filter=createdon ge ', variables('StartDate'),\r\n    ' and createdon le ', variables('EndDate'),\r\n    '&$expand=userid($select=fullname)',\r\n    '&$orderby=createdon desc'\r\n)"
+                  }
+                }
+              },
+              "runAfter": {
+                "Set_EndDate": [
+                  "Succeeded"
+                ]
+              },
+              "else": {
+                "actions": {
+                  "Specific_Table_Filter_Expression": {
+                    "runAfter": {},
+                    "metadata": {
+                      "operationMetadataId": "7e5aaba4-99cc-4f87-baf1-c12e12ab6130"
+                    },
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "VarNextPageLink",
+                      "value": "@if(\r\n  or(\r\n    empty(trim(parameters('Table Name (wby_TableName)'))),\r\n    equals(toLower(trim(parameters('Table Name (wby_TableName)'))), 'null')\r\n  ),\r\n  '',\r\n  concat(\r\n  parameters('AuditAPIBaseURL (wby_AuditAPIBaseURL)'), '/api/data/v9.2/audits?',\r\n  '$filter=createdon ge ', variables('StartDate'),\r\n  ' and createdon le ', variables('EndDate'),\r\n  ' and objecttypecode eq ''', parameters('Table Name (wby_TableName)'), '''',\r\n  '&$expand=userid($select=fullname)',\r\n  '&$orderby=createdon desc'\r\n)\r\n)"
+                    }
+                  }
+                }
+              },
+              "expression": {
+                "or": [
+                  {
+                    "equals": [
+                      "@toLower( trim(parameters('Table Name (wby_TableName)')))",
+                      "all"
+                    ]
+                  }
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "be34498b-816e-413d-b80a-cba552d27368"
+              },
+              "type": "If"
+            }
+          },
+          "runAfter": {
+            "Filter_array": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "3c51afe0-8eca-47d8-b019-514bb5162253"
+          },
+          "type": "Scope"
+        },
+        "varOperation": {
+          "runAfter": {
+            "varEndDate": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "17caa2b1-3dbe-4d69-8684-a5e9a7e5e8f8"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "varOperation",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "Var_NextPageLink": {
+          "runAfter": {
+            "varOperation": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "8c529eb6-38a5-49a8-a9f5-18a67874f820"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "VarNextPageLink",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "Scope_-_catchVariable": {
+          "actions": {
+            "Compose_1": {
+              "runAfter": {},
+              "metadata": {
+                "operationMetadataId": "b0af3862-e7bd-4e0c-bad4-3725c6ec9331"
+              },
+              "type": "Compose",
+              "inputs": "@result('Scope_-_Variable_Initilalization')"
+            },
+            "Send_an_email_(V2)_1": {
+              "runAfter": {
+                "Compose_1": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "55349cbf-66a0-4687-b956-e6f06df67080"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_office365-1",
+                  "operationId": "SendEmailV2",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                },
+                "parameters": {
+                  "emailMessage/To": "@parameters('AuditEmailErrorQuery (wby_EmailErrorQuery)')",
+                  "emailMessage/Subject": "Audit File Generation Failed",
+                  "emailMessage/Body": "<p class=\"editor-paragraph\"><br>Greetings,<br><br>There are some error in the Audit flow. Please see below.<br><br>Flow Name: @{workflow()?['displayName']}<br>Environment: @{workflow()?['tags']?['environmentName']}<br>Run URL: https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']['name']}<br><br>Details:<br>@{outputs('Compose_1')}</p><br><p class=\"editor-paragraph\"><br>Regards,<br><br>WeatherBys<br></p><br>",
+                  "emailMessage/Importance": "Normal"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runAfter": {
+            "Apply_to_each": [
+              "TimedOut",
+              "Failed"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "b365b29a-45d3-4789-b0da-b9042e7ecf22"
+          },
+          "type": "Scope"
+        },
+        "varFileCounter": {
+          "runAfter": {
+            "Var_NextPageLink": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "8568c656-d99d-4db6-9c39-cec56550cc47"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "FileIterationNo",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "varFolderPath": {
+          "runAfter": {
+            "varFileCounter": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "6a5c6e2a-66f5-4d04-a578-94fabdbdb171"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Folder Path",
+                "type": "string",
+                "value": "@{parameters('SharePointFolderPath (wby_SharePointFolderPath)')}@{formatDateTime(utcNow(), 'dd-MM-yyyy')}"
+              }
+            ]
+          }
+        },
+        "varFileBatchSize": {
+          "runAfter": {
+            "varFolderPath": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "eb5d37cb-40bf-4f17-907a-a8b28d3cf72c"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "varFileBatchSize",
+                "type": "integer",
+                "value": "@parameters('AuditFileBatchSize (wby_FileBatchSize)')"
+              }
+            ]
+          }
+        },
+        "OldLookupValue": {
+          "runAfter": {
+            "LookupTableName": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "14a311db-a28b-40a1-9dba-bd20394d4ff7"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "OldLookupValue",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "NewLookupValue": {
+          "runAfter": {
+            "OldLookupValue": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "ad9dfc4c-7d20-4ca3-9909-253ffb82f0bb"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "NewLookupValue",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "LookupTableName": {
+          "runAfter": {
+            "varFileBatchSize": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "3f1d4302-79b5-4e75-a610-be11134be9ad"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Lookup Table name",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "ProcessedAttributes": {
+          "runAfter": {
+            "NewLookupValue": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "95cf47b1-5aec-4f4d-a5e5-8f2be4abc841"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "ProcessedAttributes",
+                "type": "array"
+              }
+            ]
+          }
+        },
+        "LookupColumns": {
+          "runAfter": {
+            "ProcessedAttributes": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "dac1633a-6c6c-4770-a7cf-1b33f576f0c6"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "LookupColumns",
+                "type": "array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "TargetEntities": {
+          "runAfter": {
+            "LookupColumns": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "30ecf5d2-66ba-4a9e-8ae4-727ca31c4354"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "TargetEntities",
+                "type": "array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "AllLookupData": {
+          "runAfter": {
+            "TargetEntities": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "0f434690-c2f5-46f7-8a08-8d86a3097bb7"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "AllLookupData",
+                "type": "object",
+                "value": {}
+              }
+            ]
+          }
+        },
+        "Main_Form_Fields": {
+          "runAfter": {
+            "AllLookupData": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "35144d6b-a1fb-4dff-8cf8-7e25ba443924"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_webcontents",
+              "operationId": "InvokeHttp",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+            },
+            "parameters": {
+              "request/method": "GET",
+              "request/url": "@{parameters('AuditAPIBaseURL (wby_AuditAPIBaseURL)')}/api/data/v9.2/systemforms?$filter=(objecttypecode eq '@{parameters('Table Name (wby_TableName)')}' and type eq 2)"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Parse_JSON_-_Main_Form_Fields": {
+          "runAfter": {
+            "Main_Form_Fields": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "11a6769a-391a-45cb-8b2e-35693e87a00b"
+          },
+          "type": "ParseJson",
+          "inputs": {
+            "content": "@body('Main_Form_Fields')",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string"
+                            },
+                            "properties": {
+                              "type": "object",
+                              "properties": {
+                                "formxml": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "name": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Compose_4": {
+          "runAfter": {
+            "Parse_JSON_-_Main_Form_Fields": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "00d55f0d-0f34-42c4-8d7f-f95a0a1b0f08"
+          },
+          "type": "Compose",
+          "inputs": "@xpath(\r\n   xml(\r\n      first(body('Parse_JSON_-_Main_Form_Fields')?['value'])?['formxml']\r\n   ),\r\n   '//control/@id'\r\n)"
+        },
+        "Select1": {
+          "runAfter": {
+            "Compose_4": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "40146e40-b96b-43c9-b3e2-7e60d4cd3a6f"
+          },
+          "type": "Select",
+          "inputs": {
+            "from": "@outputs('Compose_4')",
+            "select": {
+              "FieldName": "@replace(replace(item(), 'id=\"', ''), '\"', '')"
+            }
+          }
+        },
+        "All_Lookups": {
+          "runAfter": {
+            "Select1": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "1f8faf8d-f7d0-4d6d-9a75-b1f681f0b9f8"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_webcontents",
+              "operationId": "InvokeHttp",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+            },
+            "parameters": {
+              "request/method": "GET",
+              "request/url": "@{parameters('AuditAPIBaseURL (wby_AuditAPIBaseURL)')}/api/data/v9.2/EntityDefinitions(LogicalName='@{parameters('Table Name (wby_TableName)')}')/Attributes/Microsoft.Dynamics.CRM.LookupAttributeMetadata?$select=LogicalName,Targets",
+              "request/headers": {
+                "Accept": "application/json",
+                "OData-MaxVersion": "4.0",
+                "OData-Version": "4.0"
+              }
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "ParseLookups": {
+          "runAfter": {
+            "All_Lookups": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "1931f3ff-40ae-494a-98ee-186f4d53d1dc"
+          },
+          "type": "ParseJson",
+          "inputs": {
+            "content": "@body('All_Lookups')",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string"
+                            },
+                            "properties": {
+                              "type": "object",
+                              "properties": {
+                                "LogicalName": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "Targets": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string"
+                                    },
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Select2": {
+          "runAfter": {
+            "ParseLookups": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "7646e7db-ba9d-4e3a-b3f7-e2820b5b5f15"
+          },
+          "type": "Select",
+          "inputs": {
+            "from": "@body('ParseLookups')?['value']",
+            "select": {
+              "LogicalName": "@item()?['LogicalName']",
+              "Targets": "@item()?['Targets']"
+            }
+          }
+        },
+        "Filter_array": {
+          "runAfter": {
+            "Select2": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "2b63de0b-ce4d-48dc-a9b2-f0cb998873f9"
+          },
+          "type": "Query",
+          "inputs": {
+            "from": "@body('Select2')",
+            "where": "@contains(\n   string(body('Select1')),\n   item()?['LogicalName']\n)"
+          }
+        },
+        "Apply_to_each": {
+          "foreach": "@body('Filter_array')",
+          "actions": {
+            "Apply_to_each_Targets": {
+              "foreach": "@items('Apply_to_each')?['Targets']",
+              "actions": {
+                "Metadata_HTTP": {
+                  "runAfter": {},
+                  "metadata": {
+                    "operationMetadataId": "07a14578-d1e0-4245-a03f-2853335f1e9b"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_webcontents",
+                      "operationId": "InvokeHttp",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                    },
+                    "parameters": {
+                      "request/method": "GET",
+                      "request/url": "@concat(\r\n  parameters('AuditAPIBaseURL (wby_AuditAPIBaseURL)') , '/api/data/v9.2/EntityDefinitions(LogicalName=''',\r\n  items('Apply_to_each_Targets'),\r\n  ''')?$select=PrimaryIdAttribute,PrimaryNameAttribute,EntitySetName'\r\n)"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "HTTP_-_Fetch_Records": {
+                  "runAfter": {
+                    "Metadata_HTTP": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "4b0e8f87-6b99-4593-a733-354dfbc64a29"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_webcontents",
+                      "operationId": "InvokeHttp",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                    },
+                    "parameters": {
+                      "request/method": "GET",
+                      "request/url": "@concat(\r\n  parameters('AuditAPIBaseURL (wby_AuditAPIBaseURL)'),\r\n  '/api/data/v9.2/',\r\n  body('Metadata_HTTP')?['EntitySetName'],\r\n  '?$select=',\r\n  body('Metadata_HTTP')?['PrimaryIdAttribute'],\r\n  ',',\r\n  body('Metadata_HTTP')?['PrimaryNameAttribute']\r\n)"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Select": {
+                  "runAfter": {
+                    "HTTP_-_Fetch_Records": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "12cb2f03-0b78-444f-a3f5-2009ab05a556"
+                  },
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('HTTP_-_Fetch_Records')?['value']",
+                    "select": {
+                      "id": "@item()?[\r\n  body('Metadata_HTTP')?['PrimaryIdAttribute']\r\n]",
+                      "name": "@item()?[\r\n  body('Metadata_HTTP')?['PrimaryNameAttribute']\r\n]"
+                    }
+                  }
+                },
+                "Compose_5": {
+                  "runAfter": {
+                    "Select": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "61ebefde-5fa6-47e0-833b-915e1cbd0e5c"
+                  },
+                  "type": "Compose",
+                  "inputs": "@json(\r\n  concat(\r\n    '{ \"',\r\n    items('Apply_to_each_Targets'),\r\n    '\":',\r\n    json(string(outputs('Select'))),\r\n    '}'\r\n  )\r\n)"
+                },
+                "MergeLookupData": {
+                  "runAfter": {
+                    "Compose_5": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "b1efeb51-55c5-4015-844a-b5f79b4a295b"
+                  },
+                  "type": "Compose",
+                  "inputs": "@addProperty(variables('AllLookupData'), items('Apply_to_each_Targets'), body('Select'))"
+                },
+                "SetAllLookupDataVariable": {
+                  "runAfter": {
+                    "MergeLookupData": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "73ff2d38-79e0-4be8-8b7c-9761cc92576e"
+                  },
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "AllLookupData",
+                    "value": "@outputs('MergeLookupData')"
+                  }
+                }
+              },
+              "runAfter": {},
+              "metadata": {
+                "operationMetadataId": "a92381af-5e05-46ec-9db4-35d6d40980b3"
+              },
+              "type": "Foreach"
+            }
+          },
+          "runAfter": {
+            "Scope_-_Variable_Initilalization": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "5c2bb42a-56dd-47b5-b714-5e4fc4d86258"
+          },
+          "type": "Foreach"
+        }
+      }
+    },
+    "templateName": ""
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="wby_FileBatchSize">
+  <defaultvalue>90000</defaultvalue>
+  <description default="This Limit should be no more than 90k">
+    <label description="This Limit should be no more than 90k" languagecode="1033" />
+  </description>
+  <displayname default="AuditFileBatchSize">
+    <label description="AuditFileBatchSize" languagecode="1033" />
+  </displayname>
+  <introducedversion>1.0.0.6</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000001</type>
+</environmentvariabledefinition>
