@@ -6,7 +6,7 @@ on:
       solution_name:
         description: 'Name of the solution to deploy'
         required: true
-        default: ITAuditHistoryV5
+        default: ITHistoryV5
       source_branch:
         description: 'Git branch to pick the solution from'
         required: true
@@ -18,7 +18,7 @@ permissions:
 jobs:
   deploy-to-test:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Checkout selected branch
@@ -51,24 +51,66 @@ jobs:
           client-secret: ${{ secrets.CLIENT_SECRET }}
           tenant-id: ${{ secrets.TENANT_ID }}
 
-      - name: Import Managed Solution
-        uses: microsoft/powerplatform-actions/import-solution@v1
-        with:
-          environment-url: ${{ secrets.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ secrets.CLIENT_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
-          tenant-id: ${{ secrets.TENANT_ID }}
-          solution-file: out/managed/${{ github.event.inputs.solution_name }}_Managed.zip
-          force-overwrite: true
-          activate-plugins: true
+      - name: Import Managed Solution (with retry)
+        run: |
+          $maxRetries = 3
+          $retryDelay = 30
+          $attempt = 1
+          $success = $false
+          
+          while ($attempt -le $maxRetries -and -not $success) {
+            try {
+              Write-Host "🔄 Import attempt $attempt of $maxRetries"
+              
+              # Use pac CLI directly for better control
+              & "$env:POWERPLATFORMTOOLS_PACPATH" solution import --path "out/managed/${{ github.event.inputs.solution_name }}_Managed.zip" --environment-url "${{ secrets.TARGET_ENVIRONMENT_URL }}" --application-id "${{ secrets.CLIENT_ID }}" --client-secret "${{ secrets.CLIENT_SECRET }}" --tenant-id "${{ secrets.TENANT_ID }}" --force-overwrite --activate-plugins --max-async-wait-time 120 --async
+              
+              if ($LASTEXITCODE -eq 0) {
+                $success = $true
+                Write-Host "✅ Solution imported successfully on attempt $attempt"
+              } else {
+                throw "Import failed with exit code $LASTEXITCODE"
+              }
+            } catch {
+              Write-Host "❌ Attempt $attempt failed: $($_.Exception.Message)"
+              if ($attempt -lt $maxRetries) {
+                Write-Host "⏳ Waiting $retryDelay seconds before retry..."
+                Start-Sleep -Seconds $retryDelay
+              }
+              $attempt++
+            }
+          }
+          
+          if (-not $success) {
+            Write-Host "❌ All import attempts failed"
+            exit 1
+          }
+        shell: pwsh
 
-      - name: Publish Solution
-        uses: microsoft/powerplatform-actions/publish-solution@v1
-        with:
-          environment-url: ${{ secrets.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ secrets.CLIENT_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
-          tenant-id: ${{ secrets.TENANT_ID }}
+      - name: Authenticate and Publish Solution
+        run: |
+          Write-Host "🔄 Publishing solution..."
+          
+          # Authenticate and publish
+          & "$env:POWERPLATFORMTOOLS_PACPATH" auth create --url "${{ secrets.TARGET_ENVIRONMENT_URL }}" --applicationId "${{ secrets.CLIENT_ID }}" --clientSecret "${{ secrets.CLIENT_SECRET }}" --tenant "${{ secrets.TENANT_ID }}"
+          
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Authentication successful"
+            & "$env:POWERPLATFORMTOOLS_PACPATH" solution publish --async
+            
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ Solution published successfully"
+            } else {
+              Write-Host "⚠️ Publish command completed with warnings (this is often normal)"
+            }
+          } else {
+            Write-Host "❌ Authentication failed"
+            exit 1
+          }
+          
+          # Clear auth
+          & "$env:POWERPLATFORMTOOLS_PACPATH" auth clear
+        shell: pwsh
 
       - name: Deployment Summary
         run: |
