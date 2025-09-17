@@ -43,13 +43,19 @@ jobs:
       - name: Install Power Platform CLI
         uses: microsoft/powerplatform-actions/actions-install@v1
 
+      - name: Authenticate with Service Principal
+        run: |
+          & "$env:POWERPLATFORMTOOLS_PACPATH" auth create `
+            --url "${{ secrets.TARGET_ENVIRONMENT_URL }}" `
+            --applicationId "${{ secrets.CLIENT_ID }}" `
+            --clientSecret "${{ secrets.CLIENT_SECRET }}" `
+            --tenant "${{ secrets.TENANT_ID }}"
+        shell: pwsh
+
       - name: Who Am I (Target Environment)
-        uses: microsoft/powerplatform-actions/who-am-i@v1
-        with:
-          environment-url: ${{ secrets.TARGET_ENVIRONMENT_URL }}
-          app-id: ${{ secrets.CLIENT_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
-          tenant-id: ${{ secrets.TENANT_ID }}
+        run: |
+          & "$env:POWERPLATFORMTOOLS_PACPATH" org who
+        shell: pwsh
 
       - name: Import Managed Solution (with retry)
         run: |
@@ -62,9 +68,15 @@ jobs:
             try {
               Write-Host "🔄 Import attempt $attempt of $maxRetries"
               
-              # Use pac CLI directly for better control
-              & "$env:POWERPLATFORMTOOLS_PACPATH" solution import --path "out/managed/${{ github.event.inputs.solution_name }}_Managed.zip" --environment-url "${{ secrets.TARGET_ENVIRONMENT_URL }}" --application-id "${{ secrets.CLIENT_ID }}" --client-secret "${{ secrets.CLIENT_SECRET }}" --tenant-id "${{ secrets.TENANT_ID }}" --force-overwrite --activate-plugins --max-async-wait-time 120 --async
-              
+              & "$env:POWERPLATFORMTOOLS_PACPATH" solution import `
+                --path "out/managed/${{ github.event.inputs.solution_name }}_Managed.zip" `
+                --environment "${{ secrets.TARGET_ENVIRONMENT_URL }}" `
+                --activate-plugins `
+                --force-overwrite `
+                --publish-changes `
+                --convert-to-managed `
+                --max-async-wait-time 120
+
               if ($LASTEXITCODE -eq 0) {
                 $success = $true
                 Write-Host "✅ Solution imported successfully on attempt $attempt"
@@ -87,28 +99,8 @@ jobs:
           }
         shell: pwsh
 
-      - name: Authenticate and Publish Solution
+      - name: Clear Authentication
         run: |
-          Write-Host "🔄 Publishing solution..."
-          
-          # Authenticate and publish
-          & "$env:POWERPLATFORMTOOLS_PACPATH" auth create --url "${{ secrets.TARGET_ENVIRONMENT_URL }}" --applicationId "${{ secrets.CLIENT_ID }}" --clientSecret "${{ secrets.CLIENT_SECRET }}" --tenant "${{ secrets.TENANT_ID }}"
-          
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ Authentication successful"
-            & "$env:POWERPLATFORMTOOLS_PACPATH" solution publish --async
-            
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "✅ Solution published successfully"
-            } else {
-              Write-Host "⚠️ Publish command completed with warnings (this is often normal)"
-            }
-          } else {
-            Write-Host "❌ Authentication failed"
-            exit 1
-          }
-          
-          # Clear auth
           & "$env:POWERPLATFORMTOOLS_PACPATH" auth clear
         shell: pwsh
 
