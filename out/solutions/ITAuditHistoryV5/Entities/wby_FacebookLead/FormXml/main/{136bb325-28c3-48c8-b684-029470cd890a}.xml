@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{136bb325-28c3-48c8-b684-029470cd890a}</formid>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab verticallayout="true" id="{97dc00a3-dbce-45f3-9f0d-3b9a40c1740a}" IsUserDefined="1">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section showlabel="false" showbar="false" IsUserDefined="0" id="{b42e8feb-b98e-4830-885d-c418faf9b341}">
+                  <labels>
+                    <label description="General" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{2a0dcd29-f1fe-4478-b2d9-7a32a4e17b2a}">
+                        <labels>
+                          <label description="Full Name" languagecode="1033" />
+                        </labels>
+                        <control id="wby_fullname" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="wby_fullname" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{dbe3981a-3ea0-4b89-ad4a-68d37c20480d}">
+                        <labels>
+                          <label description="Owner" languagecode="1033" />
+                        </labels>
+                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{bfb5cc33-e224-4032-b3b3-36a075838cbd}">
+                        <labels>
+                          <label description="Lead Source" languagecode="1033" />
+                        </labels>
+                        <control id="wby_leadsource" classid="{3ef39988-22bb-4f0b-bbbe-64b5a3748aee}" datafieldname="wby_leadsource" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{c4489fc0-2583-4f3e-b066-ab1e5e31e44e}">
+                        <labels>
+                          <label description="Email" languagecode="1033" />
+                        </labels>
+                        <control id="wby_email" classid="{4273edbd-ac1d-40d3-9fb2-095c621b552d}" datafieldname="wby_email" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{932cea3a-f579-42eb-9c58-80d9382932c8}">
+                        <labels>
+                          <label description="Phone" languagecode="1033" />
+                        </labels>
+                        <control id="wby_phone" classid="{4273edbd-ac1d-40d3-9fb2-095c621b552d}" datafieldname="wby_phone" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{71450cdf-c028-48b3-b2c2-97034816321b}">
+                        <labels>
+                          <label description="Lead Created Date" languagecode="1033" />
+                        </labels>
+                        <control id="wby_leadcreateddate" classid="{5b773807-9fb2-42db-97c3-7a91eff8adff}" datafieldname="wby_leadcreateddate" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

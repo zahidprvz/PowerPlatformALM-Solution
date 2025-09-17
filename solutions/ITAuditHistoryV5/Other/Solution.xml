@@ -80,22 +80,9 @@
       </Addresses>
     </Publisher>
     <RootComponents>
+      <RootComponent type="1" schemaName="wby_facebooklead" behavior="0" />
       <RootComponent type="29" id="{4c548eb7-fa8e-f011-b4cb-000d3a269fe7}" behavior="0" />
-      <RootComponent type="29" id="{d9ef153e-ce8d-f011-b4cb-000d3a25d178}" behavior="0" />
     </RootComponents>
-    <MissingDependencies>
-      <MissingDependency>
-        <Required type="connectionreference" displayName="new_sharedwebcontents_915d9" solution="Active" id.connectionreferencelogicalname="new_sharedwebcontents_915d9" />
-        <Dependent type="29" displayName="2 Button -&gt; Invoke an HTTP request" id="{d9ef153e-ce8d-f011-b4cb-000d3a25d178}" />
-      </MissingDependency>
-      <MissingDependency>
-        <Required type="connectionreference" displayName="new_sharedwebcontents_a1b22" solution="Active" id.connectionreferencelogicalname="new_sharedwebcontents_a1b22" />
-        <Dependent type="29" displayName="2 Button -&gt; Invoke an HTTP request" id="{d9ef153e-ce8d-f011-b4cb-000d3a25d178}" />
-      </MissingDependency>
-      <MissingDependency>
-        <Required type="connectionreference" displayName="new_sharedwebcontents_a8bf8" solution="Active" id.connectionreferencelogicalname="new_sharedwebcontents_a8bf8" />
-        <Dependent type="29" displayName="2 Button -&gt; Invoke an HTTP request" id="{d9ef153e-ce8d-f011-b4cb-000d3a25d178}" />
-      </MissingDependency>
-    </MissingDependencies>
+    <MissingDependencies />
   </SolutionManifest>
 </ImportExportXml>

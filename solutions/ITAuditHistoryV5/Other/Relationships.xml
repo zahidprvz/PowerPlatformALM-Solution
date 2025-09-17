@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<EntityRelationships xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <EntityRelationship Name="business_unit_wby_facebooklead" />
+  <EntityRelationship Name="lk_wby_facebooklead_createdby" />
+  <EntityRelationship Name="lk_wby_facebooklead_modifiedby" />
+  <EntityRelationship Name="owner_wby_facebooklead" />
+  <EntityRelationship Name="team_wby_facebooklead" />
+  <EntityRelationship Name="user_wby_facebooklead" />
+</EntityRelationships>
