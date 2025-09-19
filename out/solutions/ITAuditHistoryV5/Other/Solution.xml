@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ImportExportXml version="9.2.25083.168" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25083.168" OrganizationSchemaType="Full" CRMServerServiceabilityVersion="9.2.25083.00168">
+<ImportExportXml version="9.2.25084.173" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25084.173" OrganizationSchemaType="Full" CRMServerServiceabilityVersion="9.2.25084.00173">
   <SolutionManifest>
     <UniqueName>ITAuditHistoryV5</UniqueName>
     <LocalizedNames>
@@ -82,7 +82,22 @@
     <RootComponents>
       <RootComponent type="1" schemaName="wby_facebooklead" behavior="0" />
       <RootComponent type="29" id="{4c548eb7-fa8e-f011-b4cb-000d3a269fe7}" behavior="0" />
+      <RootComponent type="61" schemaName="AuditDetailsInfo.js" behavior="0" />
+      <RootComponent type="61" schemaName="msdyn_AuditDetail.js" behavior="0" />
     </RootComponents>
-    <MissingDependencies />
+    <MissingDependencies>
+      <MissingDependency>
+        <Required type="61" schemaName="AuditDetailsInfo.js" displayName="AuditDetailsInfo.js" solution="msft_Auditing (1.0.0.3)">
+          <package appName="PowerAppsModernization Package" version="1.0.0.1">PowerAppsModernization_Anchor (1.0.0.1)</package>
+        </Required>
+        <Dependent type="61" schemaName="AuditDetailsInfo.js" displayName="AuditDetailsInfo.js" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="msdyn_AuditDetail.js" displayName="msdyn_AuditDetail.js" solution="msdyn_PowerAdminSettingsAuditing (1.1.1.2073)">
+          <package appName="PowerPlatformEnvironmentSettingsApp" version="1.1.1.2073">PowerPlatformEnvironmentSettingsApp_Anchor (1.1.1.2073)</package>
+        </Required>
+        <Dependent type="61" schemaName="msdyn_AuditDetail.js" displayName="msdyn_AuditDetail.js" />
+      </MissingDependency>
+    </MissingDependencies>
   </SolutionManifest>
 </ImportExportXml>
